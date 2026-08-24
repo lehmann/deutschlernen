@@ -3,5 +3,6 @@ dist
 .DS_Store
 *.local
 .env
+env.example
 data/
 /.mcp.json
