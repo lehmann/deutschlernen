@@ -34,7 +34,7 @@ describe('VOCABULARY data integrity', () => {
     }
   })
 
-  it('all 15 themes have at least one entry', () => {
+  it('all themes in THEME_LABELS have at least one entry', () => {
     const used = new Set(VOCABULARY.map(v => v.theme))
     for (const theme of VALID_THEMES) {
       expect(used, `theme "${theme}" has no entries`).toContain(theme)
@@ -93,5 +93,17 @@ describe('VOCABULARY data integrity', () => {
     for (const entry of VOCABULARY) {
       expect(valid, `invalid type "${entry.type}" on ${entry.id}`).toContain(entry.type)
     }
+  })
+
+  it('all entries with explicit level have a valid CEFR level', () => {
+    const valid = ['A2', 'B1', 'B2']
+    for (const entry of VOCABULARY.filter(v => v.level)) {
+      expect(valid, `invalid level "${entry.level}" on ${entry.id}`).toContain(entry.level)
+    }
+  })
+
+  it('has at least 50 B1 entries and 25 B2 entries', () => {
+    expect(VOCABULARY.filter(v => v.level === 'B1').length).toBeGreaterThanOrEqual(50)
+    expect(VOCABULARY.filter(v => v.level === 'B2').length).toBeGreaterThanOrEqual(25)
   })
 })

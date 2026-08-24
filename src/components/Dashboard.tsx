@@ -3,7 +3,7 @@ import { useStore, ALL_CARDS } from '../store'
 import { isDue, isNew } from '../lib/sm2'
 import { VOCABULARY } from '../data/vocabulary'
 import { THEME_LABELS } from '../types'
-import type { Theme } from '../types'
+import type { Theme, CefrLevel } from '../types'
 
 interface Props {
   onStartReview: () => void
@@ -48,14 +48,30 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab }: Props) 
         total: vocabInTheme.length,
         active: activeInTheme.length,
       }
-    }).filter(t => t.total > 0)
+    }).filter(t => t.active > 0)
   }, [state.activeVocabIds])
+
+  const levelStats = useMemo(() => {
+    const levels: CefrLevel[] = ['A2', 'B1', 'B2']
+    return levels.map(level => {
+      const vocabForLevel = VOCABULARY.filter(v => (v.level ?? 'A2') === level)
+      const activeForLevel = vocabForLevel.filter(v => state.activeVocabIds.includes(v.id))
+      return {
+        level,
+        total: vocabForLevel.length,
+        active: activeForLevel.length,
+        ids: vocabForLevel.map(v => v.id),
+      }
+    })
+  }, [state.activeVocabIds])
+
+  const [a2Stats, b1Stats, b2Stats] = levelStats
 
   const hasDue = stats.due > 0 || stats.new > 0
   const hasActive = stats.vocabActive > 0
 
   function handleQuickStart() {
-    addVocabBulk(VOCABULARY.map(v => v.id))
+    addVocabBulk(a2Stats.ids)
     onStartReview()
   }
 
@@ -75,7 +91,9 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab }: Props) 
     <div className="flex flex-col gap-6 pb-8">
       {/* Hero */}
       <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-800 p-6 text-white">
-        <p className="text-indigo-200 text-sm font-medium mb-1">Deutsch A2</p>
+        <p className="text-indigo-200 text-sm font-medium mb-1">
+          Deutsch {[a2Stats.active > 0 && 'A2', b1Stats.active > 0 && 'B1', b2Stats.active > 0 && 'B2'].filter(Boolean).join(' + ') || 'A2'}
+        </p>
         <h1 className="text-2xl font-bold mb-4">Vamos praticar! 👋</h1>
 
         {hasActive && (
@@ -101,7 +119,7 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab }: Props) 
             onClick={handleQuickStart}
             className="w-full py-3 rounded-xl font-semibold text-base bg-white text-indigo-700 hover:bg-indigo-50 transition-colors"
           >
-            Começar agora — {VOCABULARY.length} palavras A2
+            Começar agora — {a2Stats.total} palavras A2
           </button>
         ) : hasDue ? (
           <button
@@ -124,6 +142,38 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab }: Props) 
           </div>
         )}
       </div>
+
+      {/* Level expansion */}
+      {hasActive && b1Stats.active === 0 && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-center gap-4">
+          <span className="text-2xl">🏆</span>
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-blue-900">Nível B1 disponível</p>
+            <p className="text-xs text-blue-700 mt-0.5">{b1Stats.total} novas palavras — situações complexas do cotidiano</p>
+          </div>
+          <button
+            onClick={() => addVocabBulk(b1Stats.ids)}
+            className="px-3 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+          >
+            Ativar B1
+          </button>
+        </div>
+      )}
+      {hasActive && b1Stats.active > 0 && b2Stats.active === 0 && (
+        <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4 flex items-center gap-4">
+          <span className="text-2xl">🎓</span>
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-purple-900">Nível B2 disponível</p>
+            <p className="text-xs text-purple-700 mt-0.5">{b2Stats.total} novas palavras — fluência e temas avançados</p>
+          </div>
+          <button
+            onClick={() => addVocabBulk(b2Stats.ids)}
+            className="px-3 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors whitespace-nowrap"
+          >
+            Ativar B2
+          </button>
+        </div>
+      )}
 
       {/* Free practice CTA when there's active vocab but nothing due */}
       {hasActive && !hasDue && (

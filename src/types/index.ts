@@ -1,3 +1,5 @@
+export type CefrLevel = 'A2' | 'B1' | 'B2'
+
 export type Theme =
   | 'rotina'
   | 'trabalho'
@@ -14,6 +16,17 @@ export type Theme =
   | 'clima'
   | 'sentimentos'
   | 'educacao'
+  // B1
+  | 'meio_ambiente'
+  | 'tecnologia'
+  | 'viagens'
+  | 'cultura'
+  | 'economia'
+  | 'sociedade'
+  // B2
+  | 'politica'
+  | 'negocios'
+  | 'ciencia'
 
 export const THEME_LABELS: Record<Theme, string> = {
   rotina: 'Rotina',
@@ -31,6 +44,15 @@ export const THEME_LABELS: Record<Theme, string> = {
   clima: 'Clima & Tempo',
   sentimentos: 'Sentimentos',
   educacao: 'Educação',
+  meio_ambiente: 'Meio Ambiente',
+  tecnologia: 'Tecnologia',
+  viagens: 'Viagens',
+  cultura: 'Cultura',
+  economia: 'Economia',
+  sociedade: 'Sociedade',
+  politica: 'Política',
+  negocios: 'Negócios',
+  ciencia: 'Ciência',
 }
 
 export type WordType = 'verb' | 'noun' | 'adjective' | 'phrase' | 'expression'
@@ -39,6 +61,7 @@ export interface VocabEntry {
   id: string
   type: WordType
   theme: Theme
+  level?: CefrLevel
   german: string
   portuguese: string
   // For nouns
