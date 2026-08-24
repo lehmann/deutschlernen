@@ -75,3 +75,4 @@ async function checkAndSendReminders() {
 // Run every 30 minutes
 cron.schedule('*/30 * * * *', checkAndSendReminders)
 console.log('[scheduler] Push reminder scheduler started (every 30 min, 8–22h)')
+
