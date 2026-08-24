@@ -25,9 +25,6 @@ export function FlashCard({ card, onReveal, revealed }: Props) {
     }
   }
 
-  // Reset flip when card changes
-  if (!revealed && flipped) setFlipped(false)
-
   return (
     <div className="w-full max-w-lg mx-auto select-none" style={{ perspective: '1000px' }}>
       <div

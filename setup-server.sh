@@ -23,19 +23,26 @@ info()    { echo -e "${C_GREEN}[✓]${C_RESET} $*"; }
 warn()    { echo -e "${C_YELLOW}[!]${C_RESET} $*"; }
 error()   { echo -e "${C_RED}[✗]${C_RESET} $*" >&2; exit 1; }
 section() { echo -e "\n${C_CYAN}${C_BOLD}━━━  $*  ━━━${C_RESET}"; }
-ask()     { read -rp "$(echo -e "  ${C_YELLOW}?${C_RESET} $1")" "$2"; }
+
+ask() { read -rp "$(echo -e "  ${C_YELLOW}?${C_RESET} $1")" "$2"; }
 
 # ─── Pre-flight ───────────────────────────────────────────────────────────────
 
 check_root() {
-  [[ $EUID -eq 0 ]] || error "Run with sudo:  sudo bash $0"
+  if [[ $EUID -ne 0 ]]; then
+    # BASH_SOURCE[0] is the script file path even when piped/sourced; $0 can be "bash"
+    local script="${BASH_SOURCE[0]:-setup-server.sh}"
+    error "Run with sudo:  sudo bash ${script}"
+  fi
 }
 
 detect_app_user() {
   # The non-root user who invoked sudo
   APP_USER="${SUDO_USER:-}"
-  [[ -n "$APP_USER" ]] || error "Run as a regular user with sudo, not directly as root."
-  [[ "$APP_USER" != "root" ]] || error "Do not run from the root account."
+  if [[ -z "$APP_USER" ]]; then
+    error "Could not detect the invoking user. Run the script as a regular user with sudo:\n  sudo bash ${BASH_SOURCE[0]:-setup-server.sh}"
+  fi
+  [[ "$APP_USER" != "root" ]] || error "Do not run from the root account. Use a regular user with sudo."
   APP_HOME=$(eval echo "~${APP_USER}")
   info "App will run as: ${APP_USER} (home: ${APP_HOME})"
 }

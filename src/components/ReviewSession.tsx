@@ -88,7 +88,7 @@ export function ReviewSession({ onFinish }: Props) {
       </div>
 
       {/* Flash card */}
-      <FlashCard card={card} onReveal={() => setRevealed(true)} revealed={revealed} />
+      <FlashCard key={card.id} card={card} onReveal={() => setRevealed(true)} revealed={revealed} />
 
       {/* Rating buttons (only after reveal) */}
       {revealed && <RatingButtons onRate={handleRate} />}
