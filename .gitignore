@@ -1,0 +1,8 @@
+node_modules
+dist
+.DS_Store
+*.local
+.env
+data/
+/.mcp.json
+/package-lock.json

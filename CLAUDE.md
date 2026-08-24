@@ -1,0 +1,81 @@
+# CLAUDE.md
+
+Instruções para o Claude Code neste projeto.
+
+## Contexto
+
+App de flashcards para aprendizado de alemão A2 (CEFR) por falantes de português. O usuário é André Lehmann, falante nativo de português.
+
+## Stack
+
+- **Frontend:** React 18 + TypeScript + Vite 5 + Tailwind CSS 3
+- **Backend:** Express.js + better-sqlite3 + web-push + node-cron
+- **Estado:** `useReducer` + Context em `src/store/index.tsx`
+- **Persistência frontend:** localStorage (com migração por `schemaVersion`)
+- **Persistência backend:** SQLite em `data/app.db`
+
+## Comandos essenciais
+
+```bash
+npm run dev              # Vite dev server na porta 5686
+npm run server           # Express API na porta 3000
+npm run build            # tsc + vite build → dist/
+npm run generate-vapid   # Gera chaves VAPID (stdout)
+npm test                 # Executa todos os testes (Vitest)
+npm run test:coverage    # Testes com relatório de cobertura
+```
+
+## Convenções do projeto
+
+### Vocabulário
+- Arquivo: `src/data/vocabulary.ts`
+- Todas as entradas devem ser nível A2 (CEFR). Verificar contra lista Goethe A2 antes de adicionar.
+- Substantivos precisam de `article` (`der/die/das`) e `plural`.
+- Verbos com preposição fixa precisam do campo `preposition`.
+- Todo entry precisa de `exampleDE` e `examplePT`.
+- `fillBlank` é opcional mas recomendado para verbos e frases comuns.
+
+### SM-2 e progresso
+- Lógica em `src/lib/sm2.ts`. Não alterar sem entender o algoritmo.
+- `schemaVersion` em `AppState` controla migrações de localStorage. Ao mudar a shape do estado, incrementar `schemaVersion` e adicionar handler em `initializeState()` em `src/store/index.tsx`.
+- `ENTRIES_PER_DAY = 10` em `src/store/index.tsx` controla o escalonamento de novas palavras. Não remover.
+
+### Push notifications
+- Service Worker em `public/sw.js` (não transpilado — JavaScript puro).
+- Chaves VAPID ficam em `.env` (nunca commitar). Template em `env.example`.
+- Trocar as chaves VAPID em produção invalida todas as subscriptions existentes — avisar o usuário antes de qualquer mudança.
+- Proxy Vite `/api → http://localhost:3000` só existe em dev. Em prod, o Express serve o `dist/` diretamente.
+
+### Componentes
+- Textos da UI em português (pt-BR) — o público-alvo é falante de português.
+- Sem bibliotecas de componentes externas. Usar Tailwind puro.
+- `FreePractice` não deve ter efeitos colaterais SM-2.
+
+## Arquitetura de deploy
+
+```
+Browser → Nginx (HTTPS) → Express :3000 → dist/ (frontend estático)
+                                        → /api/push (Web Push API)
+```
+
+- `setup-server.sh`: script de inicialização para Ubuntu (Node.js, build, systemd, Nginx, Certbot).
+- `deploy.sh`: gerado pelo setup, para redeploys (`git pull + build + restart`).
+- Serviço systemd: `deutschlernen.service` — roda como o usuário que executou o setup, não como root.
+
+## Testes
+
+- Framework: **Vitest 2** com `vitest.config.ts` na raiz.
+- Ambiente por diretório: `tests/unit/**` → `jsdom`; `tests/server/**` → `node`.
+- Testes de servidor usam SQLite em memória (`tests/server/testDb.js`) e mockam `web-push`.
+- CI: `.github/workflows/test.yml` — dispara a cada push em `src/**`, `server/**`, `tests/**`.
+- O `reducer` em `src/store/index.tsx` é exportado (`export function reducer`) para testes unitários diretos.
+- **Caveat conhecido:** `loadState()` retorna referência direta ao `DEFAULT_STATE` quando localStorage está vazio — mutá-la corrompe o estado padrão para chamadas subsequentes. Testes devem usar spread (`{ ...loadState() }`) ao precisar modificar o resultado.
+
+## O que não fazer
+
+- Não usar `npm install --omit=dev` antes do `npm run build` — o build precisa de devDependencies (tsc, vite).
+- Não commitar `.env` ou `data/` (ambos no `.gitignore`).
+- Não adicionar vocabulário B1+ — verificar nível antes.
+- Não usar `Math.random()` em scripts de workflow — usar Fisher-Yates sobre arrays já inicializados.
+- Não criar arquivos de documentação intermediários durante implementação — trabalhar a partir do contexto da conversa.
+- Não mockar `better-sqlite3` com variável externa ao factory de `vi.mock` — usar módulo auxiliar (`tests/server/testDb.js`) que é importado tanto pelo mock quanto pelo teste.
