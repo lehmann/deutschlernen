@@ -1,0 +1,13 @@
+[Unit]
+Description=Deutschlernen — auto-update from git
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lehmann
+WorkingDirectory=/home/lehmann/deutschlernen
+ExecStart=/home/lehmann/deutschlernen/auto-update.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=deutschlernen-update
