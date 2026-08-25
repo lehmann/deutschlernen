@@ -134,8 +134,14 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab }: Props) 
               Tudo revisado!{stats.nextDue && ` Próxima revisão ${formatNextDue(stats.nextDue)}.`}
             </p>
             <button
+              onClick={onStartReview}
+              className="w-full py-3 rounded-xl font-semibold text-base bg-white text-indigo-700 hover:bg-indigo-50 transition-colors"
+            >
+              Revisar novamente
+            </button>
+            <button
               onClick={onStartFree}
-              className="w-full py-3 rounded-xl font-semibold text-base bg-white/20 text-white hover:bg-white/30 transition-colors border border-white/30"
+              className="w-full py-2 rounded-xl font-semibold text-sm bg-white/20 text-white hover:bg-white/30 transition-colors border border-white/30"
             >
               Praticar livremente
             </button>

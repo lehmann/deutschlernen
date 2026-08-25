@@ -16,30 +16,41 @@ export function ReviewSession({ onFinish }: Props) {
   const [revealed, setRevealed] = useState(false)
   const [sessionDone, setSessionDone] = useState(false)
 
-  // Build the due queue once per session mount, shuffled so cards from the
-  // same vocab entry (PT→DE, DE→PT, fill_blank) don't appear consecutively.
+  // Build the queue once per session mount, shuffled to avoid consecutive cards
+  // from the same vocab entry (PT→DE, DE→PT, fill_blank).
+  // Primary: cards that are due. Fallback: all active cards (reinforcement round).
   const queue = useMemo<ReviewCard[]>(() => {
-    const due = ALL_CARDS.filter(card => {
+    let cards = ALL_CARDS.filter(card => {
       const prog = state.progress[card.id]
       return prog && isDue(prog)
     })
-    // Fisher-Yates shuffle
-    for (let i = due.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[due[i], due[j]] = [due[j], due[i]]
+    if (cards.length === 0) {
+      // No due cards — build a reinforcement queue from all active cards
+      cards = ALL_CARDS.filter(card => state.progress[card.id] != null)
+        .sort((a, b) =>
+          state.progress[a.id].nextReview.localeCompare(state.progress[b.id].nextReview)
+        )
     }
-    return due
+    // Fisher-Yates shuffle
+    for (let i = cards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[cards[i], cards[j]] = [cards[j], cards[i]]
+    }
+    return cards
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (queue.length === 0 || sessionDone) {
+  const isReinforcement = useMemo(
+    () => !ALL_CARDS.some(card => { const p = state.progress[card.id]; return p && isDue(p) }),
+    [] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
+  if (sessionDone) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
         <div className="text-6xl">🎉</div>
-        <h2 className="text-2xl font-bold text-slate-800">Revisão concluída!</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Sessão concluída!</h2>
         <p className="text-slate-500 text-center max-w-xs">
-          {queue.length === 0
-            ? 'Nenhuma carta para revisar agora. Volte mais tarde!'
-            : `Você revisou ${queue.length} ${queue.length === 1 ? 'carta' : 'cartas'} hoje.`}
+          Você revisou {queue.length} {queue.length === 1 ? 'carta' : 'cartas'}.
         </p>
         <button
           onClick={onFinish}
@@ -73,6 +84,12 @@ export function ReviewSession({ onFinish }: Props) {
 
   return (
     <div className="flex flex-col gap-6 py-4">
+      {/* Reinforcement banner */}
+      {isReinforcement && (
+        <p className="text-center text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 max-w-lg mx-auto w-full">
+          Reforço — nenhuma carta vencida. Revisando todo o vocabulário ativo.
+        </p>
+      )}
       {/* Progress bar */}
       <div className="w-full max-w-lg mx-auto">
         <div className="flex justify-between text-xs text-slate-500 mb-1">

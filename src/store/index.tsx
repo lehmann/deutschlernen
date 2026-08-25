@@ -84,8 +84,14 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'ADD_VOCAB_BULK': {
       const toAdd = action.vocabIds.filter(id => !state.activeVocabIds.includes(id))
       if (toAdd.length === 0) return state
+      // Shuffle so the first batch of each day is random, not always the same entries
+      const shuffled = [...toAdd]
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+      }
       const newProgress: Record<string, CardProgress> = {}
-      toAdd.forEach((vocabId, idx) => {
+      shuffled.forEach((vocabId, idx) => {
         const dayOffset = Math.floor(idx / ENTRIES_PER_DAY)
         const scheduledDate = new Date()
         scheduledDate.setDate(scheduledDate.getDate() + dayOffset)
@@ -97,7 +103,7 @@ export function reducer(state: AppState, action: Action): AppState {
       })
       return {
         ...state,
-        activeVocabIds: [...state.activeVocabIds, ...toAdd],
+        activeVocabIds: [...state.activeVocabIds, ...shuffled],
         progress: { ...state.progress, ...newProgress },
       }
     }
