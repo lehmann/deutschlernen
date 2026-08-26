@@ -6,22 +6,29 @@
  * Usage: node scripts/generate-listening.mjs
  *
  * Sources:
- *   - Sentences: Tatoeba (CC-BY) — https://tatoeba.org
- *   - Frequency:  hermitdave/FrequencyWords (MIT) — github.com/hermitdave/FrequencyWords
+ *   - Sentences + audio: Tatoeba bulk TSV exports (CC-BY) — https://tatoeba.org
+ *   - Frequency list:    hermitdave/FrequencyWords (MIT)   — github.com/hermitdave/FrequencyWords
+ *
+ * Requires: curl and bunzip2 (available on macOS and Linux by default)
  */
 
 import fs from 'fs'
 import path from 'path'
+import { execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUT_PATH = path.join(__dirname, '..', 'src', 'data', 'listening.ts')
 
+// Vocabulary rank thresholds per CEFR level
 const RANK_THRESHOLD = { A2: 1500, B1: 4000, B2: 8000 }
+// Sentence length limits (words) per level
 const MAX_WORDS = { A2: 10, B1: 16, B2: 24 }
 const MIN_WORDS = 4
+// Target number of sentences per level in the output
 const TARGET = 60
 
+// Function words excluded from difficulty scoring
 const STOPWORDS = new Set([
   'der', 'die', 'das', 'ein', 'eine', 'einen', 'einem', 'eines',
   'und', 'oder', 'aber', 'nicht', 'ist', 'sind', 'hat', 'haben',
@@ -30,38 +37,69 @@ const STOPWORDS = new Set([
   'aus', 'über', 'auch', 'noch', 'nur', 'so', 'wie', 'als', 'dass',
   'wenn', 'ob', 'weil', 'da', 'um', 'bis', 'seit', 'ab', 'am',
   'im', 'zum', 'zur', 'des', 'dem', 'den', 'mein', 'meine', 'dein',
-  'sein', 'ihr', 'unser', 'kein', 'keine', 'wird', 'wurde', 'war',
+  'sein', 'unser', 'kein', 'keine', 'wird', 'wurde', 'war',
   'kann', 'muss', 'will', 'soll', 'darf', 'mehr', 'sehr', 'gut',
 ])
 
-async function fetchText(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`)
-  return res.text()
-}
+// ─── Data loading ─────────────────────────────────────────────────────────────
 
-async function fetchJson(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`)
-  return res.json()
-}
-
-async function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms))
+function fetchBzip2(url, maxMB = 200) {
+  return execSync(`curl -s "${url}" | bunzip2`, {
+    maxBuffer: maxMB * 1024 * 1024,
+  }).toString('utf-8')
 }
 
 async function loadFrequencyMap() {
-  console.log('Fetching German word frequency list (hermitdave/FrequencyWords)...')
+  console.log('Fetching German word frequency list...')
   const url = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_50k.txt'
-  const text = await fetchText(url)
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`)
+  const text = await res.text()
   const map = new Map()
   for (const [rank, line] of text.split('\n').entries()) {
     const word = line.trim().split(' ')[0]
     if (word) map.set(word.toLowerCase(), rank + 1)
   }
-  console.log(`  Loaded ${map.size} words`)
+  console.log(`  ${map.size} words loaded`)
   return map
 }
+
+function loadGermanSentences() {
+  console.log('Downloading German sentences (Tatoeba bulk export)...')
+  const url = 'https://downloads.tatoeba.org/exports/per_language/deu/deu_sentences.tsv.bz2'
+  const raw = fetchBzip2(url)
+  // Format: sentence_id \t lang \t text
+  const map = new Map()
+  for (const line of raw.split('\n')) {
+    const tab1 = line.indexOf('\t')
+    const tab2 = line.indexOf('\t', tab1 + 1)
+    if (tab1 === -1 || tab2 === -1) continue
+    const id = parseInt(line.slice(0, tab1))
+    const text = line.slice(tab2 + 1).trim()
+    if (id && text) map.set(id, text)
+  }
+  console.log(`  ${map.size} sentences loaded`)
+  return map
+}
+
+function loadAudioIndex() {
+  console.log('Downloading German audio index (Tatoeba bulk export)...')
+  const url = 'https://downloads.tatoeba.org/exports/per_language/deu/deu_sentences_with_audio.tsv.bz2'
+  const raw = fetchBzip2(url, 10)
+  // Format: audio_id \t sentence_id \t username \t license \t attribution_url
+  const map = new Map() // sentence_id → audio_id (first audio per sentence wins)
+  for (const line of raw.split('\n')) {
+    const [audioId, sentenceId] = line.split('\t')
+    if (!audioId || !sentenceId) continue
+    const sid = parseInt(sentenceId)
+    const aid = parseInt(audioId)
+    if (!map.has(sid)) map.set(sid, aid)
+  }
+  console.log(`  ${map.size} sentences with audio`)
+  return map
+}
+
+// ─── CEFR classification ──────────────────────────────────────────────────────
 
 function scoreSentence(text, freqMap) {
   const tokens = text
@@ -74,6 +112,7 @@ function scoreSentence(text, freqMap) {
 
   const ranks = tokens.map(w => freqMap.get(w) ?? 50000)
   ranks.sort((a, b) => a - b)
+  // 75th-percentile rank — harder words dominate the score
   return ranks[Math.floor(ranks.length * 0.75)]
 }
 
@@ -86,48 +125,40 @@ function classifyLevel(text, score) {
   return null
 }
 
-async function fetchTatoebaSentences(pages = 30) {
-  const results = []
-  console.log(`Fetching Tatoeba German sentences with audio (${pages} pages)...`)
-  for (let page = 1; page <= pages; page++) {
-    try {
-      const url = `https://api.tatoeba.org/unstable/sentences?lang=deu&has_audio=yes&limit=100&page=${page}`
-      const data = await fetchJson(url)
-      if (!data.data?.length) break
-      for (const s of data.data) {
-        const audioId = s.audios?.[0]?.id
-        if (s.text && audioId) results.push({ id: s.id, text: s.text, audioId })
-      }
-      process.stdout.write(`\r  ${results.length} sentences fetched (page ${page}/${pages})`)
-      await sleep(250)
-    } catch (err) {
-      console.warn(`\n  Page ${page} failed: ${err.message}`)
-    }
-  }
-  console.log()
-  return results
-}
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
   const freqMap = await loadFrequencyMap()
-  const sentences = await fetchTatoebaSentences(30)
+  const sentences = loadGermanSentences()
+  const audioIndex = loadAudioIndex()
 
+  console.log('Classifying sentences...')
   const buckets = { A2: [], B1: [], B2: [] }
+  let processed = 0
 
-  for (const s of sentences) {
-    const score = scoreSentence(s.text, freqMap)
-    const level = classifyLevel(s.text, score)
+  for (const [sentenceId, audioId] of audioIndex) {
+    const text = sentences.get(sentenceId)
+    if (!text) continue
+
+    const score = scoreSentence(text, freqMap)
+    const level = classifyLevel(text, score)
     if (level && buckets[level].length < TARGET) {
       buckets[level].push({
-        id: `${level.toLowerCase()}_t${s.id}`,
-        text: s.text,
-        audioId: s.audioId,
+        id: `${level.toLowerCase()}_t${sentenceId}`,
+        text,
+        audioId,
       })
+    }
+    processed++
+    if (processed % 1000 === 0) {
+      process.stdout.write(
+        `\r  ${processed}/${audioIndex.size} — A2:${buckets.A2.length} B1:${buckets.B1.length} B2:${buckets.B2.length}`,
+      )
     }
     if (Object.values(buckets).every(b => b.length >= TARGET)) break
   }
 
-  console.log('Classification results:')
+  console.log('\nResults:')
   for (const [level, entries] of Object.entries(buckets)) {
     console.log(`  ${level}: ${entries.length} sentences`)
   }
