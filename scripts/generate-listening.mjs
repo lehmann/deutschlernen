@@ -86,17 +86,20 @@ function loadAudioIndex() {
   console.log('Downloading German audio index (Tatoeba bulk export)...')
   const url = 'https://downloads.tatoeba.org/exports/per_language/deu/deu_sentences_with_audio.tsv.bz2'
   const raw = fetchBzip2(url, 10)
-  // Format: audio_id \t sentence_id \t username \t license \t attribution_url
-  // The download URL https://tatoeba.org/en/audio/download/{id} uses sentence_id, not audio_id.
-  const set = new Set() // sentence_ids that have at least one audio recording
+  // Format: sentence_id \t audio_id \t username \t license \t attribution_url
+  // The download URL https://tatoeba.org/en/audio/download/{audio_id} uses audio_id (col2).
+  const map = new Map() // sentence_id → audio_id (first audio per sentence wins)
   for (const line of raw.split('\n')) {
     const parts = line.split('\t')
     if (parts.length < 2) continue
-    const sid = parseInt(parts[1]) // col2 = sentence_id
-    if (!isNaN(sid) && sid > 0) set.add(sid)
+    const sentenceId = parseInt(parts[0]) // col1 = sentence_id
+    const audioId = parseInt(parts[1])    // col2 = audio_id
+    if (!isNaN(sentenceId) && !isNaN(audioId) && sentenceId > 0 && audioId > 0) {
+      if (!map.has(sentenceId)) map.set(sentenceId, audioId)
+    }
   }
-  console.log(`  ${set.size} sentences with audio`)
-  return set
+  console.log(`  ${map.size} sentences with audio`)
+  return map
 }
 
 // ─── CEFR classification ──────────────────────────────────────────────────────
@@ -136,7 +139,7 @@ async function main() {
   const buckets = { A2: [], B1: [], B2: [] }
   let processed = 0
 
-  for (const sentenceId of audioIndex) {
+  for (const [sentenceId, audioId] of audioIndex) {
     const text = sentences.get(sentenceId)
     if (!text) continue
 
@@ -146,7 +149,7 @@ async function main() {
       buckets[level].push({
         id: `${level.toLowerCase()}_t${sentenceId}`,
         text,
-        audioId: sentenceId, // URL: /en/audio/download/{sentenceId}
+        audioId, // URL: /en/audio/download/{audioId}
       })
     }
     processed++
