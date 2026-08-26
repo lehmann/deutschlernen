@@ -9,9 +9,10 @@ interface Props {
   onStartFree: () => void
   onBrowseVocab: () => void
   onStartListening: () => void
+  onStartWriting: () => void
 }
 
-export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening }: Props) {
+export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening, onStartWriting }: Props) {
   const { state, addVocabBulk } = useStore()
 
   const stats = useMemo(() => {
@@ -160,18 +161,32 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartLi
         )}
       </div>
 
-      {/* Ditado guiado */}
-      <button
-        onClick={onStartListening}
-        className="w-full rounded-2xl bg-slate-800 p-5 flex items-center gap-4 hover:bg-slate-700 transition-colors text-left"
-      >
-        <span className="text-3xl">🎧</span>
-        <div className="flex-1">
-          <p className="font-semibold text-base text-white">Ditado guiado</p>
-          <p className="text-sm text-slate-400 mt-0.5">Ouça frases nativas e transcreva o que ouviu</p>
-        </div>
-        <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
-      </button>
+      {/* Treino cards */}
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={onStartListening}
+          className="w-full rounded-2xl bg-slate-800 p-5 flex items-center gap-4 hover:bg-slate-700 transition-colors text-left"
+        >
+          <span className="text-3xl">🎧</span>
+          <div className="flex-1">
+            <p className="font-semibold text-base text-white">Ditado guiado</p>
+            <p className="text-sm text-slate-400 mt-0.5">Ouça frases nativas e transcreva o que ouviu</p>
+          </div>
+          <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
+        </button>
+
+        <button
+          onClick={onStartWriting}
+          className="w-full rounded-2xl bg-slate-800 p-5 flex items-center gap-4 hover:bg-slate-700 transition-colors text-left"
+        >
+          <span className="text-3xl">✍️</span>
+          <div className="flex-1">
+            <p className="font-semibold text-base text-white">Prática de escrita</p>
+            <p className="text-sm text-slate-400 mt-0.5">Leia em português e traduza para o alemão</p>
+          </div>
+          <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
+        </button>
+      </div>
 
       {/* Daily routine */}
       <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
@@ -179,7 +194,7 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartLi
         <ol className="text-sm text-amber-700 space-y-1 list-none">
           <li>🔁 5 min — Revisão ativa (flashcards)</li>
           <li>🎧 5 min — Ditado guiado</li>
-          <li>📖 5 min — Vocabulário de um tema</li>
+          <li>✍️ 5 min — Prática de escrita</li>
           <li>🗣 5 min — Praticar livremente</li>
         </ol>
       </div>

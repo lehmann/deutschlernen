@@ -1,13 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { CefrLevel } from '../types'
 import { useStore } from '../store'
 import { VOCABULARY } from '../data/vocabulary'
-import { LISTENING_DATA } from '../data/listening'
-import type { ListeningEntry } from '../data/listening'
+import { WRITING_DATA } from '../data/writing'
+import type { WritingEntry } from '../data/writing'
 import { THRESHOLD, checkAnswer } from '../lib/dictation'
 import type { CheckResult } from '../lib/dictation'
-
-// ── Constants ──────────────────────────────────────────────────────────────────
 
 const LEVEL_STYLE: Record<CefrLevel, { tab: string; card: string }> = {
   A2: { tab: 'bg-emerald-600', card: 'bg-emerald-50 border-emerald-200' },
@@ -17,39 +15,12 @@ const LEVEL_STYLE: Record<CefrLevel, { tab: string; card: string }> = {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function InputView({
-  typed, onTyped, onCheck, hasNativeAudio,
-}: {
-  typed: string
-  onTyped: (v: string) => void
-  onCheck: () => void
-  hasNativeAudio: boolean
-}) {
-  return (
-    <>
-      <textarea
-        value={typed}
-        onChange={e => onTyped(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onCheck() } }}
-        placeholder="Digite o que você ouviu…"
-        rows={3}
-        autoFocus
-        className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
-      />
-      <p className="text-xs text-slate-400 text-center">
-        ä→a · ö→o · ü→u · ß→ss são aceitos · Enter para verificar
-      </p>
-      {hasNativeAudio && <p className="text-xs text-slate-400">Voz nativa · Tatoeba CC-BY</p>}
-    </>
-  )
-}
-
 function ResultView({
-  result, threshold, hasNativeAudio,
+  result, reference, threshold,
 }: {
   result: CheckResult
+  reference: string
   threshold: number
-  hasNativeAudio: boolean
 }) {
   const pct = Math.round(result.accuracy * 100)
   return (
@@ -83,6 +54,11 @@ function ResultView({
         })}
       </div>
 
+      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Resposta esperada</p>
+        <p className="text-sm text-slate-700 leading-relaxed">{reference}</p>
+      </div>
+
       <div className="flex gap-3 text-xs text-slate-400 flex-wrap justify-center">
         {([
           ['bg-green-400',  'correto'],
@@ -96,8 +72,6 @@ function ResultView({
           </span>
         ))}
       </div>
-
-      {hasNativeAudio && <p className="text-xs text-slate-400">Voz nativa · Tatoeba CC-BY</p>}
     </>
   )
 }
@@ -113,10 +87,10 @@ function EndScreen({
 }) {
   return (
     <div className="rounded-2xl bg-slate-50 border border-slate-200 p-8 flex flex-col items-center gap-4 text-center">
-      <span className="text-4xl">🎉</span>
+      <span className="text-4xl">✍️</span>
       <h2 className="text-xl font-bold text-slate-800">Sessão concluída!</h2>
       <p className="text-slate-500 text-sm">
-        {stats.passed} de {stats.checked} frases corretas (≥{threshold}%)
+        {stats.passed} de {stats.checked} traduções corretas (≥{threshold}%)
       </p>
       <div className="flex gap-3 mt-2">
         <button onClick={onRestart} className={`px-5 py-2.5 rounded-xl font-semibold text-sm ${style.tab} text-white`}>
@@ -145,7 +119,7 @@ function shuffled<T>(arr: T[]): T[] {
   return a
 }
 
-export function ListeningPractice({ onFinish }: Props) {
+export function WritingPractice({ onFinish }: Props) {
   const { state } = useStore()
 
   const availableLevels = useMemo<CefrLevel[]>(() => {
@@ -156,83 +130,31 @@ export function ListeningPractice({ onFinish }: Props) {
   }, [state.activeVocabIds])
 
   const [activeLevel, setActiveLevel] = useState<CefrLevel>(availableLevels[0])
-  const [queue, setQueue]   = useState<ListeningEntry[]>(() => shuffled(LISTENING_DATA[availableLevels[0]] ?? []))
+  const [queue, setQueue]   = useState<WritingEntry[]>(() => shuffled(WRITING_DATA[availableLevels[0]] ?? []))
   const [idx, setIdx]       = useState(0)
   const [typed, setTyped]   = useState('')
   const [result, setResult] = useState<CheckResult | null>(null)
-  const [playing, setPlaying] = useState(false)
   const [stats, setStats]   = useState({ checked: 0, passed: 0 })
-  const [playCount, setPlayCount] = useState(0) // resets per entry; ≥3 triggers 0.75× speed
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  function stopAudio() {
-    audioRef.current?.pause()
-    audioRef.current = null
-    window.speechSynthesis?.cancel()
-    setPlaying(false)
-  }
 
   useEffect(() => {
-    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []))
+    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []))
     setIdx(0)
     setTyped('')
     setResult(null)
     setStats({ checked: 0, passed: 0 })
-    setPlayCount(0)
-    stopAudio() // eslint-disable-line react-hooks/exhaustive-deps
-  }, [activeLevel]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => () => { stopAudio() }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function playTTS(text: string, rate: number) {
-    if (!window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'de-DE'
-    u.rate = rate
-    u.onend = () => setPlaying(false)
-    u.onerror = () => setPlaying(false)
-    window.speechSynthesis.speak(u)
-    setPlaying(true)
-  }
-
-  function handlePlay() {
-    if (playing) { stopAudio(); return }
-    const entry = queue[idx]
-    if (!entry) return
-
-    const newCount = playCount + 1
-    setPlayCount(newCount)
-    const isSlow = newCount >= 3
-
-    const ttsRate = isSlow ? 0.85 * 0.75 : 0.85
-
-    if (entry.audioId) {
-      const audio = new Audio(`https://tatoeba.org/en/audio/download/${entry.audioId}`)
-      audioRef.current = audio
-      audio.playbackRate = isSlow ? 0.75 : 1.0
-      audio.onended = () => setPlaying(false)
-      audio.onerror = () => { setPlaying(false); playTTS(entry.text, ttsRate) }
-      audio.play().then(() => setPlaying(true)).catch(() => playTTS(entry.text, ttsRate))
-    } else {
-      playTTS(entry.text, ttsRate)
-    }
-  }
+  }, [activeLevel])
 
   function handleCheck() {
     const entry = queue[idx]
     if (!entry || !typed.trim()) return
-    const r = checkAnswer(entry.text, typed, activeLevel)
+    const r = checkAnswer(entry.de, typed, activeLevel)
     setResult(r)
     setStats(s => ({ checked: s.checked + 1, passed: s.passed + (r.passed ? 1 : 0) }))
-    stopAudio()
   }
 
   function advance() {
-    stopAudio()
     setTyped('')
     setResult(null)
-    setPlayCount(0)
     setIdx(i => i + 1)
   }
 
@@ -243,12 +165,11 @@ export function ListeningPractice({ onFinish }: Props) {
   }
 
   function handleRestart() {
-    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []))
+    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []))
     setIdx(0)
     setTyped('')
     setResult(null)
     setStats({ checked: 0, passed: 0 })
-    setPlayCount(0)
   }
 
   const entry = queue[idx]
@@ -260,9 +181,9 @@ export function ListeningPractice({ onFinish }: Props) {
     <div className="flex flex-col gap-5 py-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-800">Treino de Escuta</h1>
+        <h1 className="text-xl font-bold text-slate-800">Prática de Escrita</h1>
         <button
-          onClick={() => { stopAudio(); onFinish() }}
+          onClick={onFinish}
           className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
         >
           Encerrar
@@ -292,33 +213,38 @@ export function ListeningPractice({ onFinish }: Props) {
           threshold={threshold}
           style={style}
           onRestart={handleRestart}
-          onFinish={() => { stopAudio(); onFinish() }}
+          onFinish={onFinish}
         />
       ) : entry ? (
         <>
           <div className={`rounded-2xl border ${style.card} p-6 flex flex-col items-center gap-4`}>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-              {result ? 'Resultado' : 'Ouça e transcreva'}
+              {result ? 'Resultado' : 'Traduza para o alemão'}
             </p>
 
-            <div className="flex flex-col items-center gap-1">
-              <button
-                onClick={handlePlay}
-                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-md transition-all ${style.tab} text-white ${playing ? 'scale-95' : 'hover:scale-105'}`}
-                aria-label={playing ? 'Pausar' : 'Ouvir frase'}
-              >
-                <span className="text-2xl leading-none">{playing ? '⏸' : '▶'}</span>
-              </button>
-              {playCount >= 3
-                ? <span className="text-xs text-slate-400">🐢 0.75×</span>
-                : playCount > 0 && <span className="text-xs text-slate-400">{playCount}/3</span>
-              }
+            {/* PT paragraph */}
+            <div className="w-full bg-white/60 rounded-xl border border-white/80 p-4">
+              <p className="text-base text-slate-800 leading-relaxed">{entry.pt}</p>
             </div>
 
-            {result
-              ? <ResultView result={result} threshold={threshold} hasNativeAudio={!!entry.audioId} />
-              : <InputView typed={typed} onTyped={setTyped} onCheck={handleCheck} hasNativeAudio={!!entry.audioId} />
-            }
+            {result ? (
+              <ResultView result={result} reference={entry.de} threshold={threshold} />
+            ) : (
+              <>
+                <textarea
+                  value={typed}
+                  onChange={e => setTyped(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCheck() } }}
+                  placeholder="Escreva a tradução em alemão…"
+                  rows={3}
+                  autoFocus
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-400 text-center">
+                  ä→a · ö→o · ü→u · ß→ss são aceitos · Enter para verificar
+                </p>
+              </>
+            )}
           </div>
 
           {result ? (
@@ -345,7 +271,7 @@ export function ListeningPractice({ onFinish }: Props) {
           <p className="text-center text-xs text-slate-400">{idx + 1} / {queue.length}</p>
         </>
       ) : (
-        <p className="text-center text-slate-500 py-10">Nenhuma frase disponível para este nível.</p>
+        <p className="text-center text-slate-500 py-10">Nenhum texto disponível para este nível.</p>
       )}
     </div>
   )
