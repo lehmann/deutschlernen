@@ -87,16 +87,16 @@ function loadAudioIndex() {
   const url = 'https://downloads.tatoeba.org/exports/per_language/deu/deu_sentences_with_audio.tsv.bz2'
   const raw = fetchBzip2(url, 10)
   // Format: audio_id \t sentence_id \t username \t license \t attribution_url
-  const map = new Map() // sentence_id → audio_id (first audio per sentence wins)
+  // The download URL https://tatoeba.org/en/audio/download/{id} uses sentence_id, not audio_id.
+  const set = new Set() // sentence_ids that have at least one audio recording
   for (const line of raw.split('\n')) {
-    const [audioId, sentenceId] = line.split('\t')
-    if (!audioId || !sentenceId) continue
-    const sid = parseInt(sentenceId)
-    const aid = parseInt(audioId)
-    if (!map.has(sid)) map.set(sid, aid)
+    const parts = line.split('\t')
+    if (parts.length < 2) continue
+    const sid = parseInt(parts[1]) // col2 = sentence_id
+    if (!isNaN(sid) && sid > 0) set.add(sid)
   }
-  console.log(`  ${map.size} sentences with audio`)
-  return map
+  console.log(`  ${set.size} sentences with audio`)
+  return set
 }
 
 // ─── CEFR classification ──────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ async function main() {
   const buckets = { A2: [], B1: [], B2: [] }
   let processed = 0
 
-  for (const [sentenceId, audioId] of audioIndex) {
+  for (const sentenceId of audioIndex) {
     const text = sentences.get(sentenceId)
     if (!text) continue
 
@@ -146,7 +146,7 @@ async function main() {
       buckets[level].push({
         id: `${level.toLowerCase()}_t${sentenceId}`,
         text,
-        audioId,
+        audioId: sentenceId, // URL: /en/audio/download/{sentenceId}
       })
     }
     processed++
