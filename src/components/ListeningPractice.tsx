@@ -263,6 +263,7 @@ export function ListeningPractice({ onFinish }: Props) {
   const [result, setResult] = useState<CheckResult | null>(null)
   const [playing, setPlaying] = useState(false)
   const [stats, setStats]   = useState({ checked: 0, passed: 0 })
+  const [playCount, setPlayCount] = useState(0) // resets per entry; ≥3 triggers 0.75× speed
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   function stopAudio() {
@@ -278,17 +279,18 @@ export function ListeningPractice({ onFinish }: Props) {
     setTyped('')
     setResult(null)
     setStats({ checked: 0, passed: 0 })
+    setPlayCount(0)
     stopAudio() // eslint-disable-line react-hooks/exhaustive-deps
   }, [activeLevel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => { stopAudio() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function playTTS(text: string) {
+  function playTTS(text: string, rate: number) {
     if (!window.speechSynthesis) return
     window.speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'de-DE'
-    u.rate = 0.85
+    u.rate = rate
     u.onend = () => setPlaying(false)
     u.onerror = () => setPlaying(false)
     window.speechSynthesis.speak(u)
@@ -299,14 +301,22 @@ export function ListeningPractice({ onFinish }: Props) {
     if (playing) { stopAudio(); return }
     const entry = queue[idx]
     if (!entry) return
+
+    const newCount = playCount + 1
+    setPlayCount(newCount)
+    const isSlow = newCount >= 3
+
+    const ttsRate = isSlow ? 0.85 * 0.75 : 0.85
+
     if (entry.audioId) {
       const audio = new Audio(`https://tatoeba.org/en/audio/download/${entry.audioId}`)
       audioRef.current = audio
+      audio.playbackRate = isSlow ? 0.75 : 1.0
       audio.onended = () => setPlaying(false)
-      audio.onerror = () => { setPlaying(false); playTTS(entry.text) }
-      audio.play().then(() => setPlaying(true)).catch(() => playTTS(entry.text))
+      audio.onerror = () => { setPlaying(false); playTTS(entry.text, ttsRate) }
+      audio.play().then(() => setPlaying(true)).catch(() => playTTS(entry.text, ttsRate))
     } else {
-      playTTS(entry.text)
+      playTTS(entry.text, ttsRate)
     }
   }
 
@@ -323,6 +333,7 @@ export function ListeningPractice({ onFinish }: Props) {
     stopAudio()
     setTyped('')
     setResult(null)
+    setPlayCount(0)
     setIdx(i => i + 1)
   }
 
@@ -338,6 +349,7 @@ export function ListeningPractice({ onFinish }: Props) {
     setTyped('')
     setResult(null)
     setStats({ checked: 0, passed: 0 })
+    setPlayCount(0)
   }
 
   const entry = queue[idx]
@@ -390,13 +402,19 @@ export function ListeningPractice({ onFinish }: Props) {
               {result ? 'Resultado' : 'Ouça e transcreva'}
             </p>
 
-            <button
-              onClick={handlePlay}
-              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-md transition-all ${style.tab} text-white ${playing ? 'scale-95' : 'hover:scale-105'}`}
-              aria-label={playing ? 'Pausar' : 'Ouvir frase'}
-            >
-              <span className="text-2xl leading-none">{playing ? '⏸' : '▶'}</span>
-            </button>
+            <div className="flex flex-col items-center gap-1">
+              <button
+                onClick={handlePlay}
+                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-md transition-all ${style.tab} text-white ${playing ? 'scale-95' : 'hover:scale-105'}`}
+                aria-label={playing ? 'Pausar' : 'Ouvir frase'}
+              >
+                <span className="text-2xl leading-none">{playing ? '⏸' : '▶'}</span>
+              </button>
+              {playCount >= 3
+                ? <span className="text-xs text-slate-400">🐢 0.75×</span>
+                : playCount > 0 && <span className="text-xs text-slate-400">{playCount}/3</span>
+              }
+            </div>
 
             {result
               ? <ResultView result={result} threshold={threshold} hasNativeAudio={!!entry.audioId} />
