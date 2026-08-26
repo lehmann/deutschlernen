@@ -1,16 +1,140 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { CefrLevel } from '../types'
 import { useStore } from '../store'
 import { VOCABULARY } from '../data/vocabulary'
 import { WRITING_DATA } from '../data/writing'
 import type { WritingEntry } from '../data/writing'
-import { THRESHOLD, checkAnswer } from '../lib/dictation'
-import type { CheckResult } from '../lib/dictation'
+import { THRESHOLD, COST, checkAnswer, tokenize, classifyPair } from '../lib/dictation'
+import type { CheckResult, ErrorType } from '../lib/dictation'
 
 const LEVEL_STYLE: Record<CefrLevel, { tab: string; card: string }> = {
   A2: { tab: 'bg-emerald-600', card: 'bg-emerald-50 border-emerald-200' },
   B1: { tab: 'bg-blue-600',    card: 'bg-blue-50 border-blue-200'       },
   B2: { tab: 'bg-purple-600',  card: 'bg-purple-50 border-purple-200'   },
+}
+
+// ── Live hint alignment ────────────────────────────────────────────────────────
+
+// Same DP as checkAnswer, returns per-typed-word ErrorType (null = extra/unmatched word)
+function alignForHints(typedTokens: string[], expected: string[]): (ErrorType | null)[] {
+  const m = expected.length, n = typedTokens.length
+  if (n === 0 || m === 0) return new Array(n).fill(null)
+
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+  for (let i = 1; i <= m; i++) dp[i][0] = i * COST.del
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = Math.min(
+        dp[i - 1][j - 1] + classifyPair(expected[i - 1], typedTokens[j - 1]).cost,
+        dp[i - 1][j] + COST.del,
+        dp[i][j - 1] + COST.ins,
+      )
+    }
+  }
+
+  const result: (ErrorType | null)[] = new Array(n).fill(null)
+  let i = m, j = n
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0) {
+      const pair = classifyPair(expected[i - 1], typedTokens[j - 1])
+      if (dp[i][j] === dp[i - 1][j - 1] + pair.cost) {
+        result[j - 1] = pair.type
+        i--; j--; continue
+      }
+    }
+    if (j > 0 && dp[i][j] === dp[i][j - 1] + COST.ins) {
+      j--
+    } else {
+      i--
+    }
+  }
+  return result
+}
+
+const ERROR_BG: Record<ErrorType, string> = {
+  ok:     '',
+  light:  'bg-yellow-200',
+  medium: 'bg-orange-200',
+  grave:  'bg-red-200',
+}
+
+// ── LiveHintTextarea ───────────────────────────────────────────────────────────
+
+function LiveHintTextarea({
+  value, expectedText, onTyped, onCheck,
+}: {
+  value: string
+  expectedText: string
+  onTyped: (v: string) => void
+  onCheck: () => void
+}) {
+  const expectedTokens = useMemo(() => tokenize(expectedText), [expectedText])
+
+  // Per-word color: only classify words already "committed" (followed by whitespace)
+  const colorMap = useMemo((): (ErrorType | null)[] => {
+    if (!value.trim()) return []
+    const hasTrailing = /\s$/.test(value)
+    const rawWords = value.trim().split(/\s+/).filter(Boolean)
+    const doneCount = hasTrailing ? rawWords.length : Math.max(0, rawWords.length - 1)
+    const doneTokens = rawWords.slice(0, doneCount).map(w => tokenize(w)[0] ?? w.toLowerCase())
+    const alignment = alignForHints(doneTokens, expectedTokens)
+    return [...alignment, ...new Array(rawWords.length - doneCount).fill(null)]
+  }, [value, expectedTokens])
+
+  // Split raw value into alternating [word, whitespace] segments for rendering
+  const segments = useMemo(() => {
+    if (!value) return []
+    const parts = value.split(/(\s+)/)
+    let wordIdx = 0
+    return parts.map(part => {
+      if (/^\s*$/.test(part)) return { text: part, type: null as ErrorType | null }
+      const type = colorMap[wordIdx] ?? null
+      wordIdx++
+      return { text: part, type }
+    })
+  }, [value, colorMap])
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mirrorRef   = useRef<HTMLDivElement>(null)
+
+  function syncScroll() {
+    if (textareaRef.current && mirrorRef.current) {
+      mirrorRef.current.scrollTop = textareaRef.current.scrollTop
+    }
+  }
+
+  return (
+    <div className="relative w-full rounded-xl border border-slate-200 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-indigo-300 focus-within:border-transparent">
+      {/* Mirror layer — word background colors */}
+      <div
+        ref={mirrorRef}
+        aria-hidden
+        className="absolute inset-0 p-3 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words overflow-hidden pointer-events-none select-none"
+      >
+        {value
+          ? segments.map((seg, i) =>
+              seg.type && seg.type !== 'ok'
+                ? <span key={i} className={`rounded ${ERROR_BG[seg.type]}`}>{seg.text}</span>
+                : <span key={i}>{seg.text}</span>
+            )
+          : <span className="text-slate-400">Escreva a tradução em alemão…</span>
+        }
+      </div>
+      {/* Textarea — transparent text, visible caret */}
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={e => onTyped(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onCheck() } }}
+        onScroll={syncScroll}
+        rows={4}
+        autoFocus
+        spellCheck={false}
+        className="relative w-full resize-none bg-transparent text-transparent caret-slate-800 p-3 text-sm leading-relaxed focus:outline-none"
+      />
+    </div>
+  )
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -130,14 +254,14 @@ export function WritingPractice({ onFinish }: Props) {
   }, [state.activeVocabIds])
 
   const [activeLevel, setActiveLevel] = useState<CefrLevel>(availableLevels[0])
-  const [queue, setQueue]   = useState<WritingEntry[]>(() => shuffled(WRITING_DATA[availableLevels[0]] ?? []))
+  const [queue, setQueue]   = useState<WritingEntry[]>(() => shuffled(WRITING_DATA[availableLevels[0]] ?? []).slice(0, 10))
   const [idx, setIdx]       = useState(0)
   const [typed, setTyped]   = useState('')
   const [result, setResult] = useState<CheckResult | null>(null)
   const [stats, setStats]   = useState({ checked: 0, passed: 0 })
 
   useEffect(() => {
-    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []))
+    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []).slice(0, 10))
     setIdx(0)
     setTyped('')
     setResult(null)
@@ -165,7 +289,7 @@ export function WritingPractice({ onFinish }: Props) {
   }
 
   function handleRestart() {
-    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []))
+    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []).slice(0, 10))
     setIdx(0)
     setTyped('')
     setResult(null)
@@ -231,14 +355,11 @@ export function WritingPractice({ onFinish }: Props) {
               <ResultView result={result} reference={entry.de} threshold={threshold} />
             ) : (
               <>
-                <textarea
+                <LiveHintTextarea
                   value={typed}
-                  onChange={e => setTyped(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCheck() } }}
-                  placeholder="Escreva a tradução em alemão…"
-                  rows={3}
-                  autoFocus
-                  className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
+                  expectedText={entry.de}
+                  onTyped={setTyped}
+                  onCheck={handleCheck}
                 />
                 <p className="text-xs text-slate-400 text-center">
                   ä→a · ö→o · ü→u · ß→ss são aceitos · Enter para verificar

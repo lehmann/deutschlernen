@@ -156,7 +156,7 @@ export function ListeningPractice({ onFinish }: Props) {
   }, [state.activeVocabIds])
 
   const [activeLevel, setActiveLevel] = useState<CefrLevel>(availableLevels[0])
-  const [queue, setQueue]   = useState<ListeningEntry[]>(() => shuffled(LISTENING_DATA[availableLevels[0]] ?? []))
+  const [queue, setQueue]   = useState<ListeningEntry[]>(() => shuffled(LISTENING_DATA[availableLevels[0]] ?? []).slice(0, 20))
   const [idx, setIdx]       = useState(0)
   const [typed, setTyped]   = useState('')
   const [result, setResult] = useState<CheckResult | null>(null)
@@ -173,7 +173,7 @@ export function ListeningPractice({ onFinish }: Props) {
   }
 
   useEffect(() => {
-    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []))
+    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []).slice(0, 20))
     setIdx(0)
     setTyped('')
     setResult(null)
@@ -243,7 +243,7 @@ export function ListeningPractice({ onFinish }: Props) {
   }
 
   function handleRestart() {
-    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []))
+    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []).slice(0, 20))
     setIdx(0)
     setTyped('')
     setResult(null)
