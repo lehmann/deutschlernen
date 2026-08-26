@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "generate-vapid": "node scripts/generate-vapid.js",
+    "generate-listening": "node scripts/generate-listening.mjs",
     "start": "npm run build && npm run server",
     "test": "vitest run",
     "test:watch": "vitest",

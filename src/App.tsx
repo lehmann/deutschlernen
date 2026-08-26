@@ -3,10 +3,11 @@ import { Dashboard } from './components/Dashboard'
 import { ReviewSession } from './components/ReviewSession'
 import { FreePractice } from './components/FreePractice'
 import { VocabBrowser } from './components/VocabBrowser'
+import { ListeningPractice } from './components/ListeningPractice'
 import { NotificationPrompt } from './components/NotificationPrompt'
 import { useNotifications } from './hooks/useNotifications'
 
-type View = 'dashboard' | 'review' | 'free' | 'vocab'
+type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening'
 
 export function App() {
   const [view, setView] = useState<View>('dashboard')
@@ -20,6 +21,7 @@ export function App() {
             onStartReview={() => setView('review')}
             onStartFree={() => setView('free')}
             onBrowseVocab={() => setView('vocab')}
+            onStartListening={() => setView('listening')}
           />
         )}
         {view === 'review' && (
@@ -30,6 +32,9 @@ export function App() {
         )}
         {view === 'vocab' && (
           <VocabBrowser onBack={() => setView('dashboard')} />
+        )}
+        {view === 'listening' && (
+          <ListeningPractice onFinish={() => setView('dashboard')} />
         )}
       </div>
 

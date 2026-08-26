@@ -9,9 +9,10 @@ interface Props {
   onStartReview: () => void
   onStartFree: () => void
   onBrowseVocab: () => void
+  onStartListening: () => void
 }
 
-export function Dashboard({ onStartReview, onStartFree, onBrowseVocab }: Props) {
+export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening }: Props) {
   const { state, addVocabBulk } = useStore()
 
   const stats = useMemo(() => {
@@ -177,6 +178,23 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab }: Props) 
             className="px-3 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors whitespace-nowrap"
           >
             Ativar B2
+          </button>
+        </div>
+      )}
+
+      {/* Listening practice */}
+      {hasActive && (
+        <div className="rounded-2xl bg-slate-800 p-4 flex items-center gap-4">
+          <span className="text-2xl">🎧</span>
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-white">Treino de escuta</p>
+            <p className="text-xs text-slate-400 mt-0.5">Ouça frases em alemão e teste sua compreensão</p>
+          </div>
+          <button
+            onClick={onStartListening}
+            className="px-3 py-2 bg-white text-slate-800 text-sm font-semibold rounded-lg hover:bg-slate-100 transition-colors whitespace-nowrap"
+          >
+            Treinar
           </button>
         </div>
       )}
