@@ -58,24 +58,30 @@ describe('ADD_VOCAB_BULK', () => {
     for (const id of ids) expect(s.activeVocabIds).toContain(id)
   })
 
-  it('staggers: first 10 entries scheduled for today', () => {
+  it('staggers: exactly 10 entries scheduled for today', () => {
     const now = new Date('2026-08-24T12:00:00Z')
     vi.setSystemTime(now)
     const s = reducer(EMPTY, { type: 'ADD_VOCAB_BULK', vocabIds: ids })
-    const cardId = ALL_CARDS.find(c => c.vocabId === ids[0])!.id
-    const date = new Date(s.progress[cardId].nextReview).toDateString()
-    expect(date).toBe(now.toDateString())
+    const todayStr = now.toDateString()
+    const countToday = ids.filter(id => {
+      const cardId = ALL_CARDS.find(c => c.vocabId === id)!.id
+      return new Date(s.progress[cardId].nextReview).toDateString() === todayStr
+    }).length
+    expect(countToday).toBe(10)
   })
 
-  it('staggers: 11th entry scheduled for tomorrow', () => {
+  it('staggers: exactly 10 entries scheduled for tomorrow', () => {
     const now = new Date('2026-08-24T12:00:00Z')
     vi.setSystemTime(now)
     const s = reducer(EMPTY, { type: 'ADD_VOCAB_BULK', vocabIds: ids })
-    const cardId = ALL_CARDS.find(c => c.vocabId === ids[10])!.id
-    const date = new Date(s.progress[cardId].nextReview)
     const tomorrow = new Date(now)
     tomorrow.setDate(tomorrow.getDate() + 1)
-    expect(date.toDateString()).toBe(tomorrow.toDateString())
+    const tomorrowStr = tomorrow.toDateString()
+    const countTomorrow = ids.filter(id => {
+      const cardId = ALL_CARDS.find(c => c.vocabId === id)!.id
+      return new Date(s.progress[cardId].nextReview).toDateString() === tomorrowStr
+    }).length
+    expect(countTomorrow).toBe(10)
   })
 
   it('skips already active vocab', () => {
