@@ -1,13 +1,15 @@
 # Deutschlernen
 
-Web app de flashcards para aprendizado de alemão nível A2 (CEFR), projetado para falantes nativos de português. Implementa repetição espaçada com o algoritmo SM-2 e lembretes push diários.
+Web app de flashcards para aprendizado de alemão níveis A2–B2 (CEFR), projetado para falantes nativos de português. Implementa repetição espaçada com o algoritmo SM-2 e lembretes push diários.
 
 ## Funcionalidades
 
 - **Flashcards SM-2** — revisão adaptativa baseada na dificuldade de cada resposta
 - **5 tipos de card por palavra** — PT→DE, DE→PT, preencher lacuna, artigo, preposição
-- **94 palavras A2** em 15 temas (família, trabalho, viagens, comida, clima, sentimentos, etc.)
-- **Escalonamento** — 10 novas entradas por dia para evitar sobrecarga inicial
+- **180 palavras A2–B2** em 24 temas — ativação progressiva por nível (A2 → B1 → B2)
+- **Tradução por clique** — nos cards de lacuna, clique em qualquer palavra para ver a tradução em português
+- **Escalonamento aleatório** — 10 novas entradas por dia, ordem embaralhada a cada ativação
+- **Sessões de reforço** — quando não há cartas vencidas, permite revisar todo o vocabulário ativo
 - **Prática livre** — modo sem SM-2 para revisar por tema sem compromisso
 - **Lembretes push** — 2 notificações/dia com espaçamento mínimo de 6 horas
 - **Sem conta necessária** — todo o progresso fica no localStorage do browser
@@ -97,7 +99,7 @@ journalctl -u deutschlernen -f      # logs em tempo real
 ```
 ├── src/
 │   ├── components/     # Dashboard, ReviewSession, FreePractice, etc.
-│   ├── data/           # vocabulary.ts — 94 entradas A2
+│   ├── data/           # vocabulary.ts — 180 entradas A2–B2
 │   ├── hooks/          # useNotifications
 │   ├── lib/            # sm2, cardGenerator, storage, notifications, pushClient
 │   ├── store/          # useReducer + Context (estado global)

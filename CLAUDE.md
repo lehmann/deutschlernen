@@ -4,7 +4,7 @@ Instruções para o Claude Code neste projeto.
 
 ## Contexto
 
-App de flashcards para aprendizado de alemão A2 (CEFR) por falantes de português. O usuário é André Lehmann, falante nativo de português.
+App de flashcards para aprendizado de alemão A2–B2 (CEFR) por falantes de português. O usuário é André Lehmann, falante nativo de português.
 
 ## Stack
 
@@ -28,17 +28,21 @@ npm run test:coverage    # Testes com relatório de cobertura
 ## Convenções do projeto
 
 ### Vocabulário
-- Arquivo: `src/data/vocabulary.ts`
-- Todas as entradas devem ser nível A2 (CEFR). Verificar contra lista Goethe A2 antes de adicionar.
+- Arquivo: `src/data/vocabulary.ts` — 180 entradas (94 A2 + 56 B1 + 30 B2) em 24 temas.
+- Níveis: `CefrLevel = 'A2' | 'B1' | 'B2'`. Entradas A2 não têm campo `level` (default via `v.level ?? 'A2'`). B1/B2 precisam de `level: 'B1'` ou `level: 'B2'`.
+- Verificar nível contra listas Goethe antes de adicionar qualquer entrada.
 - Substantivos precisam de `article` (`der/die/das`) e `plural`.
 - Verbos com preposição fixa precisam do campo `preposition`.
 - Todo entry precisa de `exampleDE` e `examplePT`.
 - `fillBlank` é opcional mas recomendado para verbos e frases comuns.
+- Ativação progressiva: B1 é oferecido no Dashboard após A2 ativo; B2 após B1 ativo.
 
 ### SM-2 e progresso
 - Lógica em `src/lib/sm2.ts`. Não alterar sem entender o algoritmo.
 - `schemaVersion` em `AppState` controla migrações de localStorage. Ao mudar a shape do estado, incrementar `schemaVersion` e adicionar handler em `initializeState()` em `src/store/index.tsx`.
 - `ENTRIES_PER_DAY = 10` em `src/store/index.tsx` controla o escalonamento de novas palavras. Não remover.
+- `ADD_VOCAB_BULK` embaralha os IDs (Fisher-Yates) antes de escalonar, para que o primeiro lote de cada dia seja aleatório. Os testes de staggering verificam a contagem por dia, não a posição de um ID específico.
+- `ReviewSession` monta fila de due cards; se vazia, usa todos os cards ativos como sessão de reforço (banner âmbar exibido).
 
 ### Push notifications
 - Service Worker em `public/sw.js` (não transpilado — JavaScript puro).
@@ -50,6 +54,7 @@ npm run test:coverage    # Testes com relatório de cobertura
 - Textos da UI em português (pt-BR) — o público-alvo é falante de português.
 - Sem bibliotecas de componentes externas. Usar Tailwind puro.
 - `FreePractice` não deve ter efeitos colaterais SM-2.
+- `FlashCard`: cards `fill_blank` renderizam a sentença com palavras clicáveis via `ClickableSentence`. Cada token é separado em `leadingPunct + word + trailingPunct` usando `\p{L}` (Unicode letters) para lidar com aspas e pontuação adjacente. `lookupTranslation` faz match por prefixo de 5 chars no VOCABULARY (cobre flexões) e cai em `GRAMMAR_DICT` (~80 palavras funcionais).
 
 ## Arquitetura de deploy
 
@@ -75,7 +80,7 @@ Browser → Nginx (HTTPS) → Express :3000 → dist/ (frontend estático)
 
 - Não usar `npm install --omit=dev` antes do `npm run build` — o build precisa de devDependencies (tsc, vite).
 - Não commitar `.env` ou `data/` (ambos no `.gitignore`).
-- Não adicionar vocabulário B1+ — verificar nível antes.
-- Não usar `Math.random()` em scripts de workflow — usar Fisher-Yates sobre arrays já inicializados.
+- Não adicionar vocabulário sem verificar o nível CEFR correto contra as listas Goethe.
+- Não usar `Math.random()` em scripts de workflow — usar Fisher-Yates sobre arrays já inicializados. (Em código da aplicação, `Math.random()` é permitido.)
 - Não criar arquivos de documentação intermediários durante implementação — trabalhar a partir do contexto da conversa.
 - Não mockar `better-sqlite3` com variável externa ao factory de `vi.mock` — usar módulo auxiliar (`tests/server/testDb.js`) que é importado tanto pelo mock quanto pelo teste.
