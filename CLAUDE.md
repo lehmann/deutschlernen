@@ -17,12 +17,13 @@ App de flashcards para aprendizado de alemão A2–B2 (CEFR) por falantes de por
 ## Comandos essenciais
 
 ```bash
-npm run dev              # Vite dev server na porta 5686
-npm run server           # Express API na porta 3000
-npm run build            # tsc + vite build → dist/
-npm run generate-vapid   # Gera chaves VAPID (stdout)
-npm test                 # Executa todos os testes (Vitest)
-npm run test:coverage    # Testes com relatório de cobertura
+npm run dev                # Vite dev server na porta 5686
+npm run server             # Express API na porta 3000
+npm run build              # tsc + vite build → dist/
+npm run generate-vapid     # Gera chaves VAPID (stdout)
+npm run generate-listening # Regenera src/data/listening.ts (requer internet)
+npm test                   # Executa todos os testes (Vitest)
+npm run test:coverage      # Testes com relatório de cobertura
 ```
 
 ## Convenções do projeto
@@ -55,6 +56,13 @@ npm run test:coverage    # Testes com relatório de cobertura
 - Sem bibliotecas de componentes externas. Usar Tailwind puro.
 - `FreePractice` não deve ter efeitos colaterais SM-2.
 - `FlashCard`: cards `fill_blank` renderizam a sentença com palavras clicáveis via `ClickableSentence`. Cada token é separado em `leadingPunct + word + trailingPunct` usando `\p{L}` (Unicode letters) para lidar com aspas e pontuação adjacente. `lookupTranslation` faz match por prefixo de 5 chars no VOCABULARY (cobre flexões) e cai em `GRAMMAR_DICT` (~80 palavras funcionais).
+- `ListeningPractice`: ditado guiado. O usuário ouve a frase e digita o que entendeu. A comparação usa word-level edit distance com custos inteiros (ok=0, grafia=1, similar=5, grave/faltando=10, extra=0); `accuracy = 1 - totalCost / (nPalavras × 10)`. Thresholds: A2 ≥ 90%, B1 ≥ 95%, B2 ≥ 99%. Caracteres especiais (ä/ö/ü/ß) normalizados para comparação — o usuário pode digitar sem eles. A fila é gerida como `useState` para suportar requeue ("Repetir"). Áudio: Tatoeba nativo via `https://tatoeba.org/en/audio/download/{audioId}` com fallback para Web Speech API TTS.
+
+### Treino de escuta — dados
+- `src/data/listening.ts` gerado por `scripts/generate-listening.mjs` (não editar manualmente).
+- Fontes: frases Tatoeba (CC-BY) + lista de frequência `hermitdave/FrequencyWords`.
+- TSV do Tatoeba (`deu_sentences_with_audio.tsv.bz2`): formato `sentence_id \t audio_id \t username`. A URL de download usa `audio_id` (col 2), não `sentence_id`. Esse detalhe foi confirmado empiricamente — inverter as colunas quebra o alinhamento áudio/frase.
+- Classificação CEFR: 75º-percentil do rank de frequência das palavras de conteúdo. A2 ≤ rank 1500 e ≤ 10 palavras; B1 ≤ 4000 e ≤ 16; B2 ≤ 8000 e ≤ 24. 60 frases por nível no arquivo gerado.
 
 ## Arquitetura de deploy
 

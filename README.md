@@ -10,6 +10,7 @@ Web app de flashcards para aprendizado de alemão níveis A2–B2 (CEFR), projet
 - **Tradução por clique** — nos cards de lacuna, clique em qualquer palavra para ver a tradução em português
 - **Escalonamento aleatório** — 10 novas entradas por dia, ordem embaralhada a cada ativação
 - **Sessões de reforço** — quando não há cartas vencidas, permite revisar todo o vocabulário ativo
+- **Ditado guiado** — ouça frases nativas (Tatoeba CC-BY) e transcreva; pontuação por nível com feedback palavra-por-palavra
 - **Prática livre** — modo sem SM-2 para revisar por tema sem compromisso
 - **Lembretes push** — 2 notificações/dia com espaçamento mínimo de 6 horas
 - **Sem conta necessária** — todo o progresso fica no localStorage do browser
@@ -38,7 +39,10 @@ npm run generate-vapid   # imprime as variáveis — copie para .env
 cp env.example .env
 # edite .env com as chaves geradas
 
-# 4. Subir frontend (porta 5686) + backend (porta 3000) em paralelo
+# 4. (Opcional) Regenerar frases do ditado guiado
+npm run generate-listening   # baixa dados do Tatoeba e reescreve src/data/listening.ts
+
+# 5. Subir frontend (porta 5686) + backend (porta 3000) em paralelo
 npm run dev       # Vite dev server (proxy /api → localhost:3000)
 npm run server    # Express API (em outro terminal)
 ```
