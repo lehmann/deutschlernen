@@ -10,6 +10,8 @@ interface Props {
   onFinish: () => void
 }
 
+const SESSION_SIZE = 30
+
 export function ReviewSession({ onFinish }: Props) {
   const { state, reviewCard, recordSession } = useStore()
   const [index, setIndex] = useState(0)
@@ -36,7 +38,7 @@ export function ReviewSession({ onFinish }: Props) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[cards[i], cards[j]] = [cards[j], cards[i]]
     }
-    return cards
+    return cards.slice(0, SESSION_SIZE)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isReinforcement = useMemo(

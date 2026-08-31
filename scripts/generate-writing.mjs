@@ -23,7 +23,7 @@ const OUT_PATH = path.join(__dirname, '..', 'src', 'data', 'writing.ts')
 
 const RANK_THRESHOLD = { A2: 1500, B1: 4000, B2: 8000 }
 const GROUP_SIZE = 2   // sentences grouped into one exercise
-const TARGET = 30
+// No hard limit — include all qualifying candidate groups
 
 const STOPWORDS = new Set([
   'der', 'die', 'das', 'ein', 'eine', 'einen', 'einem', 'eines',
@@ -132,11 +132,11 @@ async function main() {
     console.log(`  ${level}: ${list.length} candidates`)
   }
 
-  // Select the 30 longest entries per level (most words in the DE text)
+  // Sort all candidates by DE word count descending (longer texts first within level)
   const buckets = {}
   for (const [level, list] of Object.entries(candidates)) {
     list.sort((a, b) => b.de.split(/\s+/).length - a.de.split(/\s+/).length)
-    buckets[level] = list.slice(0, TARGET).map(e => ({
+    buckets[level] = list.map(e => ({
       id: `${level.toLowerCase()}_w${String(e.firstIdx).padStart(5, '0')}`,
       de: e.de,
       pt: e.pt,

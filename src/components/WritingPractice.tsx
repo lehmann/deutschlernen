@@ -234,13 +234,16 @@ interface Props {
   onFinish: () => void
 }
 
-function shuffled<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
+const SESSION_SIZE = 5
+
+// Jittered-complexity queue: longer texts score higher on average (±30% jitter)
+// so they appear more often, but shorter texts can occasionally win.
+function buildQueue(entries: WritingEntry[]): WritingEntry[] {
+  return [...entries]
+    .map(e => ({ e, score: e.de.split(/\s+/).length * (0.7 + Math.random() * 0.6) }))
+    .sort((a, b) => b.score - a.score)
+    .map(({ e }) => e)
+    .slice(0, SESSION_SIZE)
 }
 
 export function WritingPractice({ onFinish }: Props) {
@@ -254,14 +257,14 @@ export function WritingPractice({ onFinish }: Props) {
   }, [state.activeVocabIds])
 
   const [activeLevel, setActiveLevel] = useState<CefrLevel>(availableLevels[0])
-  const [queue, setQueue]   = useState<WritingEntry[]>(() => shuffled(WRITING_DATA[availableLevels[0]] ?? []).slice(0, 10))
+  const [queue, setQueue]   = useState<WritingEntry[]>(() => buildQueue(WRITING_DATA[availableLevels[0]] ?? []))
   const [idx, setIdx]       = useState(0)
   const [typed, setTyped]   = useState('')
   const [result, setResult] = useState<CheckResult | null>(null)
   const [stats, setStats]   = useState({ checked: 0, passed: 0 })
 
   useEffect(() => {
-    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []).slice(0, 10))
+    setQueue(buildQueue(WRITING_DATA[activeLevel] ?? []))
     setIdx(0)
     setTyped('')
     setResult(null)
@@ -289,7 +292,7 @@ export function WritingPractice({ onFinish }: Props) {
   }
 
   function handleRestart() {
-    setQueue(shuffled(WRITING_DATA[activeLevel] ?? []).slice(0, 10))
+    setQueue(buildQueue(WRITING_DATA[activeLevel] ?? []))
     setIdx(0)
     setTyped('')
     setResult(null)

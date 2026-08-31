@@ -9,6 +9,8 @@ import type { CheckResult } from '../lib/dictation'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
+const SESSION_SIZE = 10
+
 const LEVEL_STYLE: Record<CefrLevel, { tab: string; card: string }> = {
   A2: { tab: 'bg-emerald-600', card: 'bg-emerald-50 border-emerald-200' },
   B1: { tab: 'bg-blue-600',    card: 'bg-blue-50 border-blue-200'       },
@@ -145,6 +147,10 @@ function shuffled<T>(arr: T[]): T[] {
   return a
 }
 
+function buildQueue(level: CefrLevel): ListeningEntry[] {
+  return shuffled(LISTENING_DATA[level] ?? []).slice(0, SESSION_SIZE)
+}
+
 export function ListeningPractice({ onFinish }: Props) {
   const { state } = useStore()
 
@@ -156,7 +162,7 @@ export function ListeningPractice({ onFinish }: Props) {
   }, [state.activeVocabIds])
 
   const [activeLevel, setActiveLevel] = useState<CefrLevel>(availableLevels[0])
-  const [queue, setQueue]   = useState<ListeningEntry[]>(() => shuffled(LISTENING_DATA[availableLevels[0]] ?? []).slice(0, 20))
+  const [queue, setQueue]   = useState<ListeningEntry[]>(() => buildQueue(availableLevels[0]))
   const [idx, setIdx]       = useState(0)
   const [typed, setTyped]   = useState('')
   const [result, setResult] = useState<CheckResult | null>(null)
@@ -173,7 +179,7 @@ export function ListeningPractice({ onFinish }: Props) {
   }
 
   useEffect(() => {
-    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []).slice(0, 20))
+    setQueue(buildQueue(activeLevel))
     setIdx(0)
     setTyped('')
     setResult(null)
@@ -243,7 +249,7 @@ export function ListeningPractice({ onFinish }: Props) {
   }
 
   function handleRestart() {
-    setQueue(shuffled(LISTENING_DATA[activeLevel] ?? []).slice(0, 20))
+    setQueue(buildQueue(activeLevel))
     setIdx(0)
     setTyped('')
     setResult(null)

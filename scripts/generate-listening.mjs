@@ -25,8 +25,7 @@ const RANK_THRESHOLD = { A2: 1500, B1: 4000, B2: 8000 }
 // Sentence length limits (words) per level
 const MAX_WORDS = { A2: 10, B1: 16, B2: 24 }
 const MIN_WORDS = 4
-// Target number of sentences per level in the output
-const TARGET = 60
+// No hard limit — include all qualifying sentences with audio
 
 // Function words excluded from difficulty scoring
 const STOPWORDS = new Set([
@@ -145,7 +144,7 @@ async function main() {
 
     const score = scoreSentence(text, freqMap)
     const level = classifyLevel(text, score)
-    if (level && buckets[level].length < TARGET) {
+    if (level) {
       buckets[level].push({
         id: `${level.toLowerCase()}_t${sentenceId}`,
         text,
@@ -158,7 +157,6 @@ async function main() {
         `\r  ${processed}/${audioIndex.size} — A2:${buckets.A2.length} B1:${buckets.B1.length} B2:${buckets.B2.length}`,
       )
     }
-    if (Object.values(buckets).every(b => b.length >= TARGET)) break
   }
 
   console.log('\nResults:')
