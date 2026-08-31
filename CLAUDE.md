@@ -51,18 +51,28 @@ npm run test:coverage      # Testes com relatório de cobertura
 - Trocar as chaves VAPID em produção invalida todas as subscriptions existentes — avisar o usuário antes de qualquer mudança.
 - Proxy Vite `/api → http://localhost:3000` só existe em dev. Em prod, o Express serve o `dist/` diretamente.
 
+### Tamanho de sessão
+Cada exercício tem uma constante `SESSION_SIZE` no topo do seu arquivo, que é o **único ponto** onde o tamanho da sessão é definido. A constante é usada exclusivamente dentro da função `buildQueue` (ou `.slice`) do mesmo arquivo — nunca nos call sites.
+
+| Exercício | Constante | Valor | Arquivo |
+|---|---|---|---|
+| Flashcards | `SESSION_SIZE` | 30 | `ReviewSession.tsx:13` |
+| Escuta | `SESSION_SIZE` | 10 | `ListeningPractice.tsx:12` |
+| Escrita | `SESSION_SIZE` | 5 | `WritingPractice.tsx:237` |
+
 ### Componentes
 - Textos da UI em português (pt-BR) — o público-alvo é falante de português.
 - Sem bibliotecas de componentes externas. Usar Tailwind puro.
 - `FreePractice` não deve ter efeitos colaterais SM-2.
 - `FlashCard`: cards `fill_blank` renderizam a sentença com palavras clicáveis via `ClickableSentence`. Cada token é separado em `leadingPunct + word + trailingPunct` usando `\p{L}` (Unicode letters) para lidar com aspas e pontuação adjacente. `lookupTranslation` faz match por prefixo de 5 chars no VOCABULARY (cobre flexões) e cai em `GRAMMAR_DICT` (~80 palavras funcionais).
-- `ListeningPractice`: ditado guiado. O usuário ouve a frase e digita o que entendeu. A comparação usa word-level edit distance com custos inteiros (ok=0, grafia=1, similar=5, grave/faltando=10, extra=0); `accuracy = 1 - totalCost / (nPalavras × 10)`. Thresholds: A2 ≥ 90%, B1 ≥ 95%, B2 ≥ 99%. Caracteres especiais (ä/ö/ü/ß) normalizados para comparação — o usuário pode digitar sem eles. A fila é gerida como `useState` para suportar requeue ("Repetir"). Áudio: Tatoeba nativo via `https://tatoeba.org/en/audio/download/{audioId}` com fallback para Web Speech API TTS.
+- `ListeningPractice`: ditado guiado. O usuário ouve a frase e digita o que entendeu. A comparação usa word-level edit distance com custos inteiros (ok=0, grafia=1, similar=5, grave/faltando=10, extra=0); `accuracy = 1 - totalCost / (nPalavras × 10)`. Thresholds: A2 ≥ 90%, B1 ≥ 95%, B2 ≥ 99%. Caracteres especiais (ä/ö/ü/ß) normalizados para comparação — o usuário pode digitar sem eles. A fila é gerida como `useState` para suportar requeue ("Repetir"). Áudio: Tatoeba nativo via `https://tatoeba.org/en/audio/download/{audioId}` com fallback para Web Speech API TTS. Após "Verificar", exibe tradução PT da frase (campo `entry.pt`) quando disponível.
 
 ### Treino de escuta — dados
 - `src/data/listening.ts` gerado por `scripts/generate-listening.mjs` (não editar manualmente).
 - Fontes: frases Tatoeba (CC-BY) + lista de frequência `hermitdave/FrequencyWords`.
 - TSV do Tatoeba (`deu_sentences_with_audio.tsv.bz2`): formato `sentence_id \t audio_id \t username`. A URL de download usa `audio_id` (col 2), não `sentence_id`. Esse detalhe foi confirmado empiricamente — inverter as colunas quebra o alinhamento áudio/frase.
-- Classificação CEFR: 75º-percentil do rank de frequência das palavras de conteúdo. A2 ≤ rank 1500 e ≤ 10 palavras; B1 ≤ 4000 e ≤ 16; B2 ≤ 8000 e ≤ 24. 60 frases por nível no arquivo gerado.
+- Classificação CEFR: 75º-percentil do rank de frequência das palavras de conteúdo. A2 ≤ rank 1500 e ≤ 10 palavras; B1 ≤ 4000 e ≤ 16; B2 ≤ 8000 e ≤ 24.
+- `ListeningEntry` tem campo `pt?: string` com a tradução portuguesa da frase, obtida dos links de tradução do Tatoeba durante a geração. O script faz duas passagens: (1) classifica todas as frases qualificadas; (2) baixa `por_sentences.tsv.bz2` e `links.tsv.bz2`, filtra apenas os IDs alemães qualificados, e anota a primeira tradução PT encontrada. `links.tsv.bz2` pode ter ~300 MB descomprimido — o `fetchBzip2` usa `maxBuffer: 500 MB` para esse arquivo. Frases sem tradução no Tatoeba simplesmente não têm o campo `pt`.
 
 ## Arquitetura de deploy
 

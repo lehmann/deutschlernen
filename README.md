@@ -4,13 +4,14 @@ Web app de flashcards para aprendizado de alemão níveis A2–B2 (CEFR), projet
 
 ## Funcionalidades
 
-- **Flashcards SM-2** — revisão adaptativa baseada na dificuldade de cada resposta
+- **Flashcards SM-2** — revisão adaptativa baseada na dificuldade de cada resposta (máx. 30 cards/sessão)
 - **5 tipos de card por palavra** — PT→DE, DE→PT, preencher lacuna, artigo, preposição
 - **180 palavras A2–B2** em 24 temas — ativação progressiva por nível (A2 → B1 → B2)
 - **Tradução por clique** — nos cards de lacuna, clique em qualquer palavra para ver a tradução em português
 - **Escalonamento aleatório** — 10 novas entradas por dia, ordem embaralhada a cada ativação
 - **Sessões de reforço** — quando não há cartas vencidas, permite revisar todo o vocabulário ativo
-- **Ditado guiado** — ouça frases nativas (Tatoeba CC-BY) e transcreva; pontuação por nível com feedback palavra-por-palavra
+- **Ditado guiado** — ouça frases nativas (Tatoeba CC-BY) e transcreva; pontuação por nível com feedback palavra-por-palavra e tradução PT da frase (máx. 10 frases/sessão)
+- **Prática de escrita** — veja a frase em português e escreva em alemão; feedback com destaque de erros (máx. 5 frases/sessão)
 - **Prática livre** — modo sem SM-2 para revisar por tema sem compromisso
 - **Lembretes push** — 2 notificações/dia com espaçamento mínimo de 6 horas
 - **Sem conta necessária** — todo o progresso fica no localStorage do browser
@@ -119,7 +120,9 @@ journalctl -u deutschlernen -f      # logs em tempo real
 ├── public/
 │   └── sw.js           # Service Worker: recebe push, exibe notificação
 ├── scripts/
-│   └── generate-vapid.js
+│   ├── generate-vapid.js
+│   ├── generate-listening.mjs   # regenera src/data/listening.ts (Tatoeba DE+PT)
+│   └── generate-writing.mjs    # regenera src/data/writing.ts (Tatoeba DE-PT via OPUS)
 ├── .github/
 │   └── workflows/test.yml  # CI: testes + cobertura a cada push
 ├── setup-server.sh     # Inicialização automática em Ubuntu
