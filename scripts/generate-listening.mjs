@@ -48,6 +48,13 @@ function fetchBzip2(url, maxMB = 200) {
   }).toString('utf-8')
 }
 
+// For .tar.bz2 files (e.g. Tatoeba links.tar.bz2): extracts the first file to stdout.
+function fetchTarBzip2(url, maxMB = 500) {
+  return execSync(`curl -s "${url}" | tar -xjO`, {
+    maxBuffer: maxMB * 1024 * 1024,
+  }).toString('utf-8')
+}
+
 async function loadFrequencyMap() {
   console.log('Fetching German word frequency list...')
   const url = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_50k.txt'
@@ -103,8 +110,9 @@ function loadPortugueseSentences() {
 // The links file covers all language pairs; filtering by germanIds avoids keeping the whole table in memory.
 function loadTranslationLinks(germanIds, ptSentences) {
   console.log('Downloading Tatoeba translation links...')
-  const url = 'https://downloads.tatoeba.org/exports/links.tsv.bz2'
-  const raw = fetchBzip2(url, 500) // uncompressed can reach ~300 MB
+  // links.tar.bz2 is a tar archive (not a plain .bz2) — requires tar -xjO to extract
+  const url = 'https://downloads.tatoeba.org/exports/links.tar.bz2'
+  const raw = fetchTarBzip2(url) // uncompressed can reach ~300 MB
   // Format: source_sentence_id \t translation_sentence_id
   const map = new Map() // germanSentenceId → Portuguese text
   for (const line of raw.split('\n')) {
