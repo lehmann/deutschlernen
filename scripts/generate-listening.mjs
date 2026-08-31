@@ -106,26 +106,72 @@ function loadPortugueseSentences() {
   return map
 }
 
-// Reads the full Tatoeba links file and returns a map of germanSentenceId → first Portuguese text found.
-// The links file covers all language pairs; filtering by germanIds avoids keeping the whole table in memory.
-function loadTranslationLinks(germanIds, ptSentences) {
+// Returns only the set of English sentence IDs — text is not needed for the bridge.
+function loadEnglishSentenceIds() {
+  console.log('Downloading English sentence IDs (Tatoeba bulk export)...')
+  const url = 'https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2'
+  const raw = fetchBzip2(url, 400)
+  // Format: sentence_id \t lang \t text
+  const set = new Set()
+  for (const line of raw.split('\n')) {
+    const tab = line.indexOf('\t')
+    if (tab === -1) continue
+    const id = parseInt(line.slice(0, tab))
+    if (id) set.add(id)
+  }
+  console.log(`  ${set.size} IDs loaded`)
+  return set
+}
+
+// Single pass over the full links file.
+// Strategy: prefer direct DE→PT links; fall back to DE→EN→PT (English bridge).
+// Links are bidirectional in the Tatoeba file, so both (a,b) and (b,a) are checked.
+function loadTranslationLinks(germanIds, engIds, ptSentences) {
   console.log('Downloading Tatoeba translation links...')
   // links.tar.bz2 is a tar archive (not a plain .bz2) — requires tar -xjO to extract
   const url = 'https://downloads.tatoeba.org/exports/links.tar.bz2'
   const raw = fetchTarBzip2(url) // uncompressed can reach ~300 MB
-  // Format: source_sentence_id \t translation_sentence_id
-  const map = new Map() // germanSentenceId → Portuguese text
+
+  const germToPt  = new Map()  // germanId → ptText  (direct DE→PT)
+  const germToEng = new Map()  // germanId → engId   (bridge step 1: DE→EN)
+  const engToPt   = new Map()  // engId    → ptText  (bridge step 2: EN→PT)
+
   for (const line of raw.split('\n')) {
     const tab = line.indexOf('\t')
     if (tab === -1) continue
-    const srcId = parseInt(line.slice(0, tab))
-    if (!germanIds.has(srcId)) continue
-    const tgtId = parseInt(line.slice(tab + 1))
-    const pt = ptSentences.get(tgtId)
-    if (pt && !map.has(srcId)) map.set(srcId, pt)
+    const a = parseInt(line.slice(0, tab))
+    const b = parseInt(line.slice(tab + 1))
+
+    // Direct DE→PT (both directions)
+    if (germanIds.has(a) && !germToPt.has(a)) { const pt = ptSentences.get(b); if (pt) germToPt.set(a, pt) }
+    if (germanIds.has(b) && !germToPt.has(b)) { const pt = ptSentences.get(a); if (pt) germToPt.set(b, pt) }
+
+    // DE→EN bridge hop 1 (both directions)
+    if (germanIds.has(a) && !germToEng.has(a) && engIds.has(b)) germToEng.set(a, b)
+    if (germanIds.has(b) && !germToEng.has(b) && engIds.has(a)) germToEng.set(b, a)
+
+    // EN→PT bridge hop 2 (both directions)
+    if (engIds.has(a) && !engToPt.has(a)) { const pt = ptSentences.get(b); if (pt) engToPt.set(a, pt) }
+    if (engIds.has(b) && !engToPt.has(b)) { const pt = ptSentences.get(a); if (pt) engToPt.set(b, pt) }
   }
-  console.log(`  ${map.size} German sentences with Portuguese translation`)
-  return map
+
+  // Resolve: direct first, then English bridge
+  const result = new Map()
+  for (const germanId of germanIds) {
+    if (germToPt.has(germanId)) {
+      result.set(germanId, germToPt.get(germanId))
+    } else {
+      const engId = germToEng.get(germanId)
+      if (engId !== undefined) {
+        const ptText = engToPt.get(engId)
+        if (ptText) result.set(germanId, ptText)
+      }
+    }
+  }
+
+  console.log(`  ${germToPt.size} direct DE→PT, ${result.size - germToPt.size} via EN bridge`)
+  console.log(`  ${result.size} / ${germanIds.size} German sentences with Portuguese translation`)
+  return result
 }
 
 function loadAudioIndex() {
@@ -198,10 +244,11 @@ async function main() {
   }
   console.log(`\n  ${qualifying.length} qualifying sentences total`)
 
-  // Load Portuguese translations for the qualifying German sentences
+  // Load translations for the qualifying German sentences (direct DE→PT + EN bridge)
   const ptSentences = loadPortugueseSentences()
+  const engIds      = loadEnglishSentenceIds()
   const qualifiedIds = new Set(qualifying.map(e => e.sentenceId))
-  const ptMap = loadTranslationLinks(qualifiedIds, ptSentences)
+  const ptMap = loadTranslationLinks(qualifiedIds, engIds, ptSentences)
 
   // Build final buckets, attaching Portuguese translation where available
   const buckets = { A2: [], B1: [], B2: [] }

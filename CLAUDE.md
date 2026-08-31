@@ -72,7 +72,7 @@ Cada exercício tem uma constante `SESSION_SIZE` no topo do seu arquivo, que é 
 - Fontes: frases Tatoeba (CC-BY) + lista de frequência `hermitdave/FrequencyWords`.
 - TSV do Tatoeba (`deu_sentences_with_audio.tsv.bz2`): formato `sentence_id \t audio_id \t username`. A URL de download usa `audio_id` (col 2), não `sentence_id`. Esse detalhe foi confirmado empiricamente — inverter as colunas quebra o alinhamento áudio/frase.
 - Classificação CEFR: 75º-percentil do rank de frequência das palavras de conteúdo. A2 ≤ rank 1500 e ≤ 10 palavras; B1 ≤ 4000 e ≤ 16; B2 ≤ 8000 e ≤ 24.
-- `ListeningEntry` tem campo `pt?: string` com a tradução portuguesa da frase, obtida dos links de tradução do Tatoeba durante a geração. O script faz duas passagens: (1) classifica todas as frases qualificadas; (2) baixa `por_sentences.tsv.bz2` e `links.tsv.bz2`, filtra apenas os IDs alemães qualificados, e anota a primeira tradução PT encontrada. `links.tsv.bz2` pode ter ~300 MB descomprimido — o `fetchBzip2` usa `maxBuffer: 500 MB` para esse arquivo. Frases sem tradução no Tatoeba simplesmente não têm o campo `pt`.
+- `ListeningEntry` tem campo `pt?: string` com a tradução portuguesa da frase, obtida dos links de tradução do Tatoeba durante a geração. O script faz duas passagens: (1) classifica todas as frases qualificadas; (2) baixa `por_sentences.tsv.bz2` e `links.tar.bz2`, filtra apenas os IDs alemães qualificados, e anota a primeira tradução PT encontrada. `links.tar.bz2` é um arquivo tar dentro de bzip2 (diferente dos demais `.tsv.bz2` simples) — usa `fetchTarBzip2` com `tar -xjO` em vez de `bunzip2`. Frases sem tradução no Tatoeba simplesmente não têm o campo `pt`.
 
 ## Arquitetura de deploy
 
