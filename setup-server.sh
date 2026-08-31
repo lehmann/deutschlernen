@@ -195,73 +195,6 @@ EOF
   fi
 }
 
-# ─── Nginx (optional) ────────────────────────────────────────────────────────
-
-setup_nginx() {
-  section "Nginx reverse proxy"
-
-  local choice
-  ask "Configure Nginx reverse proxy? [y/N]: " choice
-  [[ "${choice,,}" == "y" ]] || { info "Skipping Nginx setup"; return 0; }
-
-  local domain
-  ask "Domain name (e.g. learn.example.com): " domain
-  [[ -n "$domain" ]] || { warn "No domain entered — skipping Nginx"; return 0; }
-
-  local port
-  port=$(grep '^PORT=' "$ENV_FILE" | cut -d= -f2-)
-  port="${port:-3000}"
-
-  apt-get install -y nginx > /dev/null
-  info "Nginx installed"
-
-  local conf="/etc/nginx/sites-available/${APP_NAME}"
-  cat > "$conf" <<EOF
-server {
-    listen 80;
-    server_name ${domain};
-
-    # Forward all requests to the Node.js app
-    location / {
-        proxy_pass         http://127.0.0.1:${port};
-        proxy_http_version 1.1;
-        proxy_set_header   Host              \$host;
-        proxy_set_header   X-Real-IP         \$remote_addr;
-        proxy_set_header   X-Forwarded-For   \$proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto \$scheme;
-        # Required for Service Worker scope
-        add_header         Service-Worker-Allowed /;
-    }
-}
-EOF
-
-  # Enable site
-  ln -sf "$conf" "/etc/nginx/sites-enabled/${APP_NAME}"
-  # Disable default site to avoid conflicts
-  rm -f /etc/nginx/sites-enabled/default
-
-  nginx -t && systemctl reload nginx
-  info "Nginx configured: ${domain} → localhost:${port}"
-
-  # ── Let's Encrypt SSL ──
-  local ssl_choice
-  ask "Install SSL certificate via Let's Encrypt? [y/N]: " ssl_choice
-  if [[ "${ssl_choice,,}" == "y" ]]; then
-    local email
-    ask "Email for Let's Encrypt renewal notices: " email
-    [[ -n "$email" ]] || error "Email required for Certbot"
-    apt-get install -y certbot python3-certbot-nginx > /dev/null
-    certbot --nginx \
-      --non-interactive \
-      --agree-tos \
-      --redirect \
-      -d "$domain" \
-      -m "$email"
-    info "SSL certificate installed — HTTPS active for ${domain}"
-    info "Auto-renewal: systemctl status certbot.timer"
-  fi
-}
-
 # ─── Firewall ────────────────────────────────────────────────────────────────
 
 setup_firewall() {
@@ -272,17 +205,19 @@ setup_firewall() {
     return
   fi
 
+  local port
+  port=$(grep '^PORT=' "$ENV_FILE" | cut -d= -f2-)
+  port="${port:-3000}"
+
   # Allow SSH so we don't lock ourselves out
   ufw allow OpenSSH > /dev/null 2>&1 || true
-  # HTTP + HTTPS
-  ufw allow 'Nginx Full' > /dev/null 2>&1 \
-    || { ufw allow 80/tcp > /dev/null 2>&1; ufw allow 443/tcp > /dev/null 2>&1; } \
-    || true
+  # Allow the Express app port
+  ufw allow "${port}/tcp" > /dev/null 2>&1 || true
   # Enable non-interactively (only if not already active)
   if ! ufw status | grep -q "Status: active"; then
     ufw --force enable > /dev/null
   fi
-  info "Firewall active: SSH + HTTP + HTTPS allowed"
+  info "Firewall active: SSH + port ${port} allowed"
 }
 
 # ─── Deploy helper script ─────────────────────────────────────────────────────
@@ -355,7 +290,6 @@ main() {
   setup_env
   build_frontend
   create_service
-  setup_nginx
   setup_firewall
   create_deploy_script
   print_summary

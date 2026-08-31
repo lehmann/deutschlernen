@@ -81,9 +81,7 @@ O script faz tudo automaticamente:
 - Executa `npm install` e `npm run build`
 - Cria e configura o arquivo `.env` (gera as chaves VAPID)
 - Registra e ativa o serviço systemd `deutschlernen`
-- Opcionalmente configura Nginx como proxy reverso
-- Opcionalmente instala certificado SSL via Let's Encrypt (Certbot)
-- Configura regras de firewall com ufw
+- Configura regras de firewall com ufw (SSH + porta do Express)
 
 Após o setup, para reimplantar:
 
@@ -144,4 +142,4 @@ journalctl -u deutschlernen -f      # logs em tempo real
 
 ## Notas sobre HTTPS
 
-Service Workers e Web Push **exigem HTTPS** em produção. Configure um domínio com certificado SSL (o `setup-server.sh` oferece Certbot) antes de ativar os lembretes.
+Service Workers e Web Push **exigem HTTPS** em produção. O `setup-server.sh` não configura HTTPS automaticamente — configure um proxy reverso (Caddy, Nginx, Cloudflare Tunnel, etc.) com certificado SSL antes de ativar os lembretes.
