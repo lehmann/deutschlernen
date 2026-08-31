@@ -322,7 +322,14 @@ export function ListeningPractice({ onFinish }: Props) {
             </div>
 
             {result
-              ? <ResultView result={result} threshold={threshold} hasNativeAudio={!!entry.audioId} />
+              ? <>
+                  <ResultView result={result} threshold={threshold} hasNativeAudio={!!entry.audioId} />
+                  {entry.pt && (
+                    <p className="text-xs text-slate-400 italic text-center border-t border-slate-200 pt-3 w-full">
+                      {entry.pt}
+                    </p>
+                  )}
+                </>
               : <InputView typed={typed} onTyped={setTyped} onCheck={handleCheck} hasNativeAudio={!!entry.audioId} />
             }
           </div>
