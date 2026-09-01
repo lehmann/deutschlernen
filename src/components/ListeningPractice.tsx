@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import type { CefrLevel } from '../types'
 import { useStore } from '../store'
 import { VOCABULARY } from '../data/vocabulary'
@@ -20,16 +20,18 @@ const LEVEL_STYLE: Record<CefrLevel, { tab: string; card: string }> = {
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function InputView({
-  typed, onTyped, onCheck, hasNativeAudio,
+  typed, onTyped, onCheck, hasNativeAudio, textareaRef,
 }: {
   typed: string
   onTyped: (v: string) => void
   onCheck: () => void
   hasNativeAudio: boolean
+  textareaRef?: React.RefObject<HTMLTextAreaElement>
 }) {
   return (
     <>
       <textarea
+        ref={textareaRef}
         value={typed}
         onChange={e => onTyped(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onCheck() } }}
@@ -170,6 +172,7 @@ export function ListeningPractice({ onFinish }: Props) {
   const [stats, setStats]   = useState({ checked: 0, passed: 0 })
   const [playCount, setPlayCount] = useState(0) // resets per entry; ≥3 triggers 0.75× speed
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const inputRef  = useRef<HTMLTextAreaElement>(null)
 
   function stopAudio() {
     audioRef.current?.pause()
@@ -223,6 +226,7 @@ export function ListeningPractice({ onFinish }: Props) {
     } else {
       playTTS(entry.text, ttsRate)
     }
+    inputRef.current?.focus()
   }
 
   function handleCheck() {
@@ -330,7 +334,7 @@ export function ListeningPractice({ onFinish }: Props) {
                     </p>
                   )}
                 </>
-              : <InputView typed={typed} onTyped={setTyped} onCheck={handleCheck} hasNativeAudio={!!entry.audioId} />
+              : <InputView typed={typed} onTyped={setTyped} onCheck={handleCheck} hasNativeAudio={!!entry.audioId} textareaRef={inputRef} />
             }
           </div>
 

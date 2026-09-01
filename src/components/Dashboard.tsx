@@ -18,7 +18,7 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartLi
   const stats = useMemo(() => {
     const activeCards = ALL_CARDS.filter(c => state.progress[c.id])
     const dueCards = activeCards.filter(c => isDue(state.progress[c.id]))
-    const newCards = activeCards.filter(c => isNew(state.progress[c.id]))
+    const newCards = dueCards.filter(c => isNew(state.progress[c.id]))
     const learnedCards = activeCards.filter(c => {
       const p = state.progress[c.id]
       return p && p.repetitions >= 2
