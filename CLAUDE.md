@@ -77,11 +77,11 @@ Cada exercício tem uma constante `SESSION_SIZE` no topo do seu arquivo, que é 
 ## Arquitetura de deploy
 
 ```
-Browser → Nginx (HTTPS) → Express :3000 → dist/ (frontend estático)
-                                        → /api/push (Web Push API)
+Browser → Express :3000 → dist/ (frontend estático)
+                        → /api/push (Web Push API)
 ```
 
-- `setup-server.sh`: script de inicialização para Ubuntu (Node.js, build, systemd, Nginx, Certbot).
+- `setup-server.sh`: script de inicialização para Ubuntu (Node.js, build, systemd, firewall). Sem Nginx — o Express serve tudo diretamente.
 - `deploy.sh`: gerado pelo setup, para redeploys (`git pull + build + restart`).
 - Serviço systemd: `deutschlernen.service` — roda como o usuário que executou o setup, não como root.
 
