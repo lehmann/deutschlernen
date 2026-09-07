@@ -131,35 +131,42 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartLi
             >
               Praticar livremente
             </button>
-            {b1Stats.active === 0 && (
-              <button
-                onClick={() => addVocabBulk(b1Stats.ids)}
-                className="w-full py-2.5 rounded-xl font-semibold text-sm bg-white/15 text-white border border-white/30 hover:bg-white/25 transition-colors flex items-center gap-3 px-4"
-              >
-                <span>🏆</span>
-                <span className="flex-1 text-left">
-                  <span className="block">Ativar nível B1</span>
-                  <span className="block text-xs text-indigo-200 font-normal">{b1Stats.total} novas palavras</span>
-                </span>
-                <span className="text-indigo-200 text-xs">Ativar →</span>
-              </button>
-            )}
-            {b1Stats.active > 0 && b2Stats.active === 0 && (
-              <button
-                onClick={() => addVocabBulk(b2Stats.ids)}
-                className="w-full py-2.5 rounded-xl font-semibold text-sm bg-white/15 text-white border border-white/30 hover:bg-white/25 transition-colors flex items-center gap-3 px-4"
-              >
-                <span>🎓</span>
-                <span className="flex-1 text-left">
-                  <span className="block">Ativar nível B2</span>
-                  <span className="block text-xs text-indigo-200 font-normal">{b2Stats.total} novas palavras</span>
-                </span>
-                <span className="text-indigo-200 text-xs">Ativar →</span>
-              </button>
-            )}
           </div>
         )}
       </div>
+
+      {/* Level activation — always visible once A2 is active */}
+      {a2Stats.active > 0 && (b1Stats.active === 0 || (b1Stats.active > 0 && b2Stats.active === 0)) && (
+        <div className="rounded-2xl bg-slate-800 p-5 flex flex-col gap-3">
+          <p className="text-white font-semibold text-sm">Expandir vocabulário</p>
+          {b1Stats.active === 0 && (
+            <button
+              onClick={() => addVocabBulk(b1Stats.ids)}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm bg-slate-700 text-white border border-slate-600 hover:bg-slate-600 transition-colors flex items-center gap-3 px-4"
+            >
+              <span>🏆</span>
+              <span className="flex-1 text-left">
+                <span className="block">Ativar nível B1</span>
+                <span className="block text-xs text-slate-400 font-normal">{b1Stats.total} novas palavras · introduzidas 10 por dia</span>
+              </span>
+              <span className="text-slate-400 text-xs">Ativar →</span>
+            </button>
+          )}
+          {b1Stats.active > 0 && b2Stats.active === 0 && (
+            <button
+              onClick={() => addVocabBulk(b2Stats.ids)}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm bg-slate-700 text-white border border-slate-600 hover:bg-slate-600 transition-colors flex items-center gap-3 px-4"
+            >
+              <span>🎓</span>
+              <span className="flex-1 text-left">
+                <span className="block">Ativar nível B2</span>
+                <span className="block text-xs text-slate-400 font-normal">{b2Stats.total} novas palavras · introduzidas 10 por dia</span>
+              </span>
+              <span className="text-slate-400 text-xs">Ativar →</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Treino cards */}
       <div className="flex flex-col gap-3">
