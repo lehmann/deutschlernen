@@ -11,9 +11,10 @@ interface Props {
   onStartListening: () => void
   onStartWriting: () => void
   onStartGrammar: () => void
+  onStartPrateritum: () => void
 }
 
-export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening, onStartWriting, onStartGrammar }: Props) {
+export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening, onStartWriting, onStartGrammar, onStartPrateritum }: Props) {
   const { state, addVocabBulk } = useStore()
 
   const stats = useMemo(() => {
@@ -203,6 +204,18 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartLi
           <div className="flex-1">
             <p className="font-semibold text-base text-white">Gramática — Perfekt</p>
             <p className="text-sm text-slate-400 mt-0.5">Auxiliar + Partizip II: regulares, irregulares e exceções</p>
+          </div>
+          <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
+        </button>
+
+        <button
+          onClick={onStartPrateritum}
+          className="w-full rounded-2xl bg-slate-800 p-5 flex items-center gap-4 hover:bg-slate-700 transition-colors text-left"
+        >
+          <span className="text-3xl">🕰️</span>
+          <div className="flex-1">
+            <p className="font-semibold text-base text-white">Gramática — Präteritum</p>
+            <p className="text-sm text-slate-400 mt-0.5">Conjugação: regulares, irregulares, modais e auxiliares</p>
           </div>
           <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
         </button>

@@ -6,10 +6,11 @@ import { VocabBrowser } from './components/VocabBrowser'
 import { ListeningPractice } from './components/ListeningPractice'
 import { WritingPractice } from './components/WritingPractice'
 import { GrammarSession } from './components/GrammarSession'
+import { PrateritumSession } from './components/PrateritumSession'
 import { NotificationPrompt } from './components/NotificationPrompt'
 import { useNotifications } from './hooks/useNotifications'
 
-type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing' | 'grammar'
+type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing' | 'grammar' | 'prateritum'
 
 export function App() {
   const [view, setView] = useState<View>('dashboard')
@@ -26,6 +27,7 @@ export function App() {
             onStartListening={() => setView('listening')}
             onStartWriting={() => setView('writing')}
             onStartGrammar={() => setView('grammar')}
+            onStartPrateritum={() => setView('prateritum')}
           />
         )}
         {view === 'review' && (
@@ -45,6 +47,9 @@ export function App() {
         )}
         {view === 'grammar' && (
           <GrammarSession onFinish={() => setView('dashboard')} />
+        )}
+        {view === 'prateritum' && (
+          <PrateritumSession onFinish={() => setView('dashboard')} />
         )}
       </div>
 
