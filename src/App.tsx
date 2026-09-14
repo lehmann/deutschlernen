@@ -5,10 +5,11 @@ import { FreePractice } from './components/FreePractice'
 import { VocabBrowser } from './components/VocabBrowser'
 import { ListeningPractice } from './components/ListeningPractice'
 import { WritingPractice } from './components/WritingPractice'
+import { GrammarSession } from './components/GrammarSession'
 import { NotificationPrompt } from './components/NotificationPrompt'
 import { useNotifications } from './hooks/useNotifications'
 
-type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing'
+type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing' | 'grammar'
 
 export function App() {
   const [view, setView] = useState<View>('dashboard')
@@ -24,6 +25,7 @@ export function App() {
             onBrowseVocab={() => setView('vocab')}
             onStartListening={() => setView('listening')}
             onStartWriting={() => setView('writing')}
+            onStartGrammar={() => setView('grammar')}
           />
         )}
         {view === 'review' && (
@@ -40,6 +42,9 @@ export function App() {
         )}
         {view === 'writing' && (
           <WritingPractice onFinish={() => setView('dashboard')} />
+        )}
+        {view === 'grammar' && (
+          <GrammarSession onFinish={() => setView('dashboard')} />
         )}
       </div>
 

@@ -10,9 +10,10 @@ interface Props {
   onBrowseVocab: () => void
   onStartListening: () => void
   onStartWriting: () => void
+  onStartGrammar: () => void
 }
 
-export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening, onStartWriting }: Props) {
+export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening, onStartWriting, onStartGrammar }: Props) {
   const { state, addVocabBulk } = useStore()
 
   const stats = useMemo(() => {
@@ -193,15 +194,28 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartLi
           </div>
           <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
         </button>
+
+        <button
+          onClick={onStartGrammar}
+          className="w-full rounded-2xl bg-slate-800 p-5 flex items-center gap-4 hover:bg-slate-700 transition-colors text-left"
+        >
+          <span className="text-3xl">📝</span>
+          <div className="flex-1">
+            <p className="font-semibold text-base text-white">Gramática — Perfekt</p>
+            <p className="text-sm text-slate-400 mt-0.5">Auxiliar + Partizip II: regulares, irregulares e exceções</p>
+          </div>
+          <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
+        </button>
       </div>
 
       {/* Daily routine */}
       <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
-        <p className="text-amber-800 font-semibold text-sm mb-2">⏱ Rotina diária — 20 minutos</p>
+        <p className="text-amber-800 font-semibold text-sm mb-2">⏱ Rotina diária — 25 minutos</p>
         <ol className="text-sm text-amber-700 space-y-1 list-none">
           <li>🔁 5 min — Revisão ativa (flashcards)</li>
           <li>🎧 5 min — Ditado guiado</li>
           <li>✍️ 5 min — Prática de escrita</li>
+          <li>📝 5 min — Gramática</li>
           <li>🗣 5 min — Praticar livremente</li>
         </ol>
       </div>
