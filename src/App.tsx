@@ -7,10 +7,11 @@ import { ListeningPractice } from './components/ListeningPractice'
 import { WritingPractice } from './components/WritingPractice'
 import { GrammarSession } from './components/GrammarSession'
 import { PrateritumSession } from './components/PrateritumSession'
+import { PronominaladverbSession } from './components/PronominaladverbSession'
 import { NotificationPrompt } from './components/NotificationPrompt'
 import { useNotifications } from './hooks/useNotifications'
 
-type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing' | 'grammar' | 'prateritum'
+type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing' | 'grammar' | 'prateritum' | 'pronominaladverb'
 
 export function App() {
   const [view, setView] = useState<View>('dashboard')
@@ -28,6 +29,7 @@ export function App() {
             onStartWriting={() => setView('writing')}
             onStartGrammar={() => setView('grammar')}
             onStartPrateritum={() => setView('prateritum')}
+            onStartPronominaladverb={() => setView('pronominaladverb')}
           />
         )}
         {view === 'review' && (
@@ -50,6 +52,9 @@ export function App() {
         )}
         {view === 'prateritum' && (
           <PrateritumSession onFinish={() => setView('dashboard')} />
+        )}
+        {view === 'pronominaladverb' && (
+          <PronominaladverbSession onFinish={() => setView('dashboard')} />
         )}
       </div>
 
