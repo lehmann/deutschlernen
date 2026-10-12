@@ -12,6 +12,7 @@ Web app de flashcards para aprendizado de alemão níveis A2–B2 (CEFR), projet
 - **Sessões de reforço** — quando não há cartas vencidas, permite revisar todo o vocabulário ativo
 - **Ditado guiado** — ouça frases nativas (Tatoeba CC-BY) e transcreva; pontuação por nível com feedback palavra-por-palavra e tradução PT da frase (máx. 10 frases/sessão)
 - **Prática de escrita** — veja a frase em português e escreva em alemão; feedback com destaque de erros (máx. 5 frases/sessão)
+- **Gramática** — sessões sem SM-2 sobre Perfekt, Präteritum, Pronominaladverbien e Declinação (terminações de artigos e adjetivos conforme caso, gênero e número)
 - **Prática livre** — modo sem SM-2 para revisar por tema sem compromisso
 - **Lembretes push** — 2 notificações/dia com espaçamento mínimo de 6 horas
 - **Sem conta necessária** — todo o progresso fica no localStorage do browser
@@ -64,6 +65,8 @@ A suíte cobre:
 - Lógica de lembretes (`notifications.test.ts`)
 - Persistência em localStorage (`storage.test.ts`)
 - Integridade dos dados de vocabulário (`vocabulary.test.ts`)
+- Integridade dos dados de gramática (`pronominaladverbien.test.ts`, `declination.test.ts`) — contagem mínima, `_BLANK_` único por frase e terminações de declinação conferidas contra as tabelas
+- Ditado guiado: comparação de respostas (`dictation.test.ts`)
 - Reducer do estado global (`store.test.ts`)
 - Rotas da API de push (`push.test.js`) — usa SQLite em memória
 
@@ -101,8 +104,9 @@ journalctl -u deutschlernen -f      # logs em tempo real
 
 ```
 ├── src/
-│   ├── components/     # Dashboard, ReviewSession, FreePractice, etc.
-│   ├── data/           # vocabulary.ts — 180 entradas A2–B2
+│   ├── components/     # Dashboard, ReviewSession, FreePractice, DeclinationSession, etc.
+│   ├── data/           # vocabulary.ts (180 entradas A2–B2), listening.ts, writing.ts (gerados)
+│   │                   # perfekt.ts, prateritum.ts, pronominaladverbien.ts, declination.ts (curados)
 │   ├── hooks/          # useNotifications
 │   ├── lib/            # sm2, cardGenerator, storage, notifications, pushClient
 │   ├── store/          # useReducer + Context (estado global)
@@ -113,7 +117,7 @@ journalctl -u deutschlernen -f      # logs em tempo real
 │   ├── db.js           # SQLite (subscriptions, sessions, reminders)
 │   └── scheduler.js    # node-cron: dispara lembretes a cada 30 min (8–22h)
 ├── tests/
-│   ├── unit/           # Vitest + jsdom (sm2, cardGenerator, store, storage, …)
+│   ├── unit/           # Vitest + jsdom (sm2, cardGenerator, store, storage, dados de gramática, …)
 │   └── server/         # Vitest + Node + Supertest (rotas push, SQLite em memória)
 ├── public/
 │   └── sw.js           # Service Worker: recebe push, exibe notificação
@@ -121,6 +125,7 @@ journalctl -u deutschlernen -f      # logs em tempo real
 │   ├── generate-vapid.js
 │   ├── generate-listening.mjs   # regenera src/data/listening.ts (Tatoeba DE+PT)
 │   └── generate-writing.mjs    # regenera src/data/writing.ts (Tatoeba DE-PT via OPUS)
+│                               # (perfekt, prateritum, pronominaladverbien e declination são curados à mão)
 ├── .github/
 │   └── workflows/test.yml  # CI: testes + cobertura a cada push
 ├── setup-server.sh     # Inicialização automática em Ubuntu

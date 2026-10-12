@@ -75,6 +75,12 @@ Cada exercício tem uma constante `SESSION_SIZE` no topo do seu arquivo, que é 
 - Classificação CEFR: 75º-percentil do rank de frequência das palavras de conteúdo. A2 ≤ rank 1500 e ≤ 10 palavras; B1 ≤ 4000 e ≤ 16; B2 ≤ 8000 e ≤ 24.
 - `ListeningEntry` tem campo `pt?: string` com a tradução portuguesa da frase, obtida dos links de tradução do Tatoeba durante a geração. O script faz duas passagens: (1) classifica todas as frases qualificadas; (2) baixa `por_sentences.tsv.bz2` e `links.tar.bz2`, filtra apenas os IDs alemães qualificados, e anota a primeira tradução PT encontrada. `links.tar.bz2` é um arquivo tar dentro de bzip2 (diferente dos demais `.tsv.bz2` simples) — usa `fetchTarBzip2` com `tar -xjO` em vez de `bunzip2`. Frases sem tradução no Tatoeba simplesmente não têm o campo `pt`.
 
+### Exercícios de gramática — dados
+- Um arquivo de dados por tema em `src/data/` (`perfekt.ts`, `prateritum.ts`, `pronominaladverbien.ts`, `declination.ts`), com um componente de sessão correspondente em `src/components/` e uma rota em `App.tsx` (`View`) + botão no `Dashboard`.
+- Dados curados, não gerados: frases do Tatoeba DE-PT (CC BY 2.0) quando há correspondência, e frases escritas à mão quando não há. Traduções PT vêm do alinhamento do Tatoeba quando disponível.
+- **Declinação** (`declination.ts`, `DeclinationSession.tsx`): cada entrada tem `table` (`artigo-definido`, `artigo-indefinido`, `adjetivo-forte`, `adjetivo-fraco`, `adjetivo-misto`), `sentence` com `_BLANK_` no lugar da **terminação** (o radical — `d-`, `ein-`, `kein-` ou o adjetivo — fica visível), `ending` (pode ser `''`, ex.: `ein Mann`), e `case`/`gender`/`number`. O usuário digita só a terminação; a tela mostra caso, gênero e número como enunciado. Tabelas de terminação estão em `ENDING_TABLES` e são a fonte da verdade: `tests/unit/declination.test.ts` falha se alguma terminação não bater com a tabela.
+- **Pronominaladverbien**: `_BLANK_` com seleção entre duas formas erradas; testes em `tests/unit/pronominaladverbien.test.ts`.
+
 ## Arquitetura de deploy
 
 ```
@@ -91,6 +97,7 @@ Browser → Express :3000 → dist/ (frontend estático)
 - Framework: **Vitest 2** com `vitest.config.ts` na raiz.
 - Ambiente por diretório: `tests/unit/**` → `jsdom`; `tests/server/**` → `node`.
 - Testes de servidor usam SQLite em memória (`tests/server/testDb.js`) e mockam `web-push`.
+- Testes de integridade de dados de gramática (`tests/unit/pronominaladverbien.test.ts`, `tests/unit/declination.test.ts`) checam contagem mínima, IDs únicos, um `_BLANK_` por frase e coerência com as tabelas. Não validam naturalidade da frase — isso depende de revisão humana.
 - CI: `.github/workflows/test.yml` — dispara a cada push em `src/**`, `server/**`, `tests/**`.
 - O `reducer` em `src/store/index.tsx` é exportado (`export function reducer`) para testes unitários diretos.
 - **Caveat conhecido:** `loadState()` retorna referência direta ao `DEFAULT_STATE` quando localStorage está vazio — mutá-la corrompe o estado padrão para chamadas subsequentes. Testes devem usar spread (`{ ...loadState() }`) ao precisar modificar o resultado.
@@ -98,7 +105,7 @@ Browser → Express :3000 → dist/ (frontend estático)
 ## O que não fazer
 
 - Não usar `npm install --omit=dev` antes do `npm run build` — o build precisa de devDependencies (tsc, vite).
-- Não commitar `.env` ou `data/` (ambos no `.gitignore`).
+- Não commitar `.env` nem `data/` da raiz (banco SQLite). No `.gitignore` a regra é `/data/` com barra inicial — `data/` sem barra ignoraria também `src/data/`, incluindo os arquivos de conteúdo.
 - Não adicionar vocabulário sem verificar o nível CEFR correto contra as listas Goethe.
 - Não usar `Math.random()` em scripts de workflow — usar Fisher-Yates sobre arrays já inicializados. (Em código da aplicação, `Math.random()` é permitido.)
 - Não criar arquivos de documentação intermediários durante implementação — trabalhar a partir do contexto da conversa.
