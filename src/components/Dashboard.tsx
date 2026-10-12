@@ -13,9 +13,10 @@ interface Props {
   onStartGrammar: () => void
   onStartPrateritum: () => void
   onStartPronominaladverb: () => void
+  onStartDeclination: () => void
 }
 
-export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening, onStartWriting, onStartGrammar, onStartPrateritum, onStartPronominaladverb }: Props) {
+export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartListening, onStartWriting, onStartGrammar, onStartPrateritum, onStartPronominaladverb, onStartDeclination }: Props) {
   const { state, addVocabBulk } = useStore()
 
   const stats = useMemo(() => {
@@ -229,6 +230,18 @@ export function Dashboard({ onStartReview, onStartFree, onBrowseVocab, onStartLi
           <div className="flex-1">
             <p className="font-semibold text-base text-white">Gramática — Pronominaladverbien</p>
             <p className="text-sm text-slate-400 mt-0.5">darauf, damit, wofür: preposição + da-/wo- para coisas e ideias</p>
+          </div>
+          <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
+        </button>
+
+        <button
+          onClick={onStartDeclination}
+          className="w-full rounded-2xl bg-slate-800 p-5 flex items-center gap-4 hover:bg-slate-700 transition-colors text-left"
+        >
+          <span className="text-3xl">🔤</span>
+          <div className="flex-1">
+            <p className="font-semibold text-base text-white">Gramática — Declinação</p>
+            <p className="text-sm text-slate-400 mt-0.5">Terminações de artigos e adjetivos: caso, gênero e número</p>
           </div>
           <span className="text-slate-400 text-sm font-semibold shrink-0">Treinar →</span>
         </button>

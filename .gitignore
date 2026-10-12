@@ -4,6 +4,6 @@ dist
 *.local
 .env
 env.example
-data/
+/data/
 /.mcp.json
 /coverage/*

@@ -8,10 +8,11 @@ import { WritingPractice } from './components/WritingPractice'
 import { GrammarSession } from './components/GrammarSession'
 import { PrateritumSession } from './components/PrateritumSession'
 import { PronominaladverbSession } from './components/PronominaladverbSession'
+import { DeclinationSession } from './components/DeclinationSession'
 import { NotificationPrompt } from './components/NotificationPrompt'
 import { useNotifications } from './hooks/useNotifications'
 
-type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing' | 'grammar' | 'prateritum' | 'pronominaladverb'
+type View = 'dashboard' | 'review' | 'free' | 'vocab' | 'listening' | 'writing' | 'grammar' | 'prateritum' | 'pronominaladverb' | 'declination'
 
 export function App() {
   const [view, setView] = useState<View>('dashboard')
@@ -30,6 +31,7 @@ export function App() {
             onStartGrammar={() => setView('grammar')}
             onStartPrateritum={() => setView('prateritum')}
             onStartPronominaladverb={() => setView('pronominaladverb')}
+            onStartDeclination={() => setView('declination')}
           />
         )}
         {view === 'review' && (
@@ -55,6 +57,9 @@ export function App() {
         )}
         {view === 'pronominaladverb' && (
           <PronominaladverbSession onFinish={() => setView('dashboard')} />
+        )}
+        {view === 'declination' && (
+          <DeclinationSession onFinish={() => setView('dashboard')} />
         )}
       </div>
 

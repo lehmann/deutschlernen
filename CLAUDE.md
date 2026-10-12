@@ -59,6 +59,7 @@ Cada exercício tem uma constante `SESSION_SIZE` no topo do seu arquivo, que é 
 | Flashcards | `SESSION_SIZE` | 30 | `ReviewSession.tsx:13` |
 | Escuta | `SESSION_SIZE` | 10 | `ListeningPractice.tsx:12` |
 | Escrita | `SESSION_SIZE` | 5 | `WritingPractice.tsx:237` |
+| Declinação | `SESSION_SIZE` | 10 | `DeclinationSession.tsx:6` |
 
 ### Componentes
 - Textos da UI em português (pt-BR) — o público-alvo é falante de português.
